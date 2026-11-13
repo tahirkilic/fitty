@@ -10,6 +10,8 @@ export class ViewModel {
     this.editor = null;
     this.review = false;
     this.importData = null;
+    this.cleverSource = null;
+    this.cleverChoices = { mappings: {}, references: {} };
   }
   get data() {
     return this.training.data;
