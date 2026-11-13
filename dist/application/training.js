@@ -130,7 +130,7 @@ export class Training {
     });
   }
   target(itemId, index, key, value) {
-    invariant(["weight", "reps"].includes(key), "Unknown target field");
+    invariant(["weight", "reps", "durationSeconds"].includes(key), "Unknown target field");
     this.editSession((s) => {
       s.items.find((i) => i.id === itemId).sets[index].target[key] = value;
     });
