@@ -246,9 +246,13 @@ function modal() {
   if (targetId) {
     const i = vm.data.active.items.find((i) => i.id === targetId);
     const timed = i.kind === "cardio" || i.kind === "isometric";
-    return `<h2>Plan targets · ${escape(i.name)}</h2><p class="muted">Edit prescriptions separately from actual results. Review them when finishing to apply to your plan.</p>${i.sets.map((set, n) => timed
-      ? `<label>Set ${n + 1} · seconds<input type="number" min="0" step="1" aria-label="Target duration ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="durationSeconds" value="${set.target.durationSeconds ?? ""}"></label>`
-      : `<label>Set ${n + 1} · kg / reps</label><div class="two"><input type="number" min="0" step="0.1" aria-label="Target weight ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="weight" value="${set.target.weight ?? ""}"><input type="number" min="0" step="1" aria-label="Target repetitions ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="reps" value="${set.target.reps ?? ""}"></div>`).join("")}<footer>${button("Done", "close", "", "dark")}</footer>`;
+    return `<h2>Plan targets · ${escape(i.name)}</h2><p class="muted">Edit prescriptions separately from actual results. Review them when finishing to apply to your plan.</p>${i.sets
+      .map((set, n) =>
+        timed
+          ? `<label>Set ${n + 1} · seconds<input type="number" min="0" step="1" aria-label="Target duration ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="durationSeconds" value="${set.target.durationSeconds ?? ""}"></label>`
+          : `<label>Set ${n + 1} · kg / reps</label><div class="two"><input type="number" min="0" step="0.1" aria-label="Target weight ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="weight" value="${set.target.weight ?? ""}"><input type="number" min="0" step="1" aria-label="Target repetitions ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="reps" value="${set.target.reps ?? ""}"></div>`,
+      )
+      .join("")}<footer>${button("Done", "close", "", "dark")}</footer>`;
   }
   if (vm.review) {
     const s = vm.data.active,
@@ -376,7 +380,11 @@ const actions = {
     if (n > 0) a.splice(n - 1, 0, a.splice(n, 1)[0]);
   },
   "plan-add-set": (id) =>
-    vm.editor.items.find((i) => i.id === id).sets.push(structuredClone(vm.editor.items.find((i) => i.id === id).sets.at(-1))),
+    vm.editor.items
+      .find((i) => i.id === id)
+      .sets.push(
+        structuredClone(vm.editor.items.find((i) => i.id === id).sets.at(-1)),
+      ),
   "plan-remove-set": (arg) => {
     const [id, n] = arg.split("|");
     const i = vm.editor.items.find((i) => i.id === id);
