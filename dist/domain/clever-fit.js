@@ -1,7 +1,7 @@
 // Source-neutral identities and reproducible source fingerprints.
 export const CLEVER_FIT_SOURCE = "clever_fit_json";
 
-/** @param {{name:string, exercises:Array<{name:string}>}} session */
+/** @param {{name:string, exercises:Array<{name:string,type:string}>}} session */
 export function exerciseOccurrences(session) {
   const seen = new Map();
   return session.exercises.map((exercise) => {
