@@ -224,7 +224,7 @@ test("CF04/CF05: failure leaves all local data intact; invalid mapping has no si
       migration(app).import(input, {
         mappings: { [catalogIdentities(input.sessions)[0].key]: "missing" },
       }),
-    /no longer exists/,
+    /missing or has a different exercise type/,
   );
   assert.equal(app.data.sessions.length, 0);
   const before = structuredClone(app.data);
