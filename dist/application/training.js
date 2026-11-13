@@ -76,7 +76,10 @@ export class Training {
       name: e.name,
       number: e.number,
       settings: e.settings,
-      sets: [prescription(), prescription(), prescription()],
+      ...(e.kind ? { kind: e.kind } : {}),
+      sets: e.kind === "cardio" || e.kind === "isometric"
+        ? [{ weight: null, reps: null, durationSeconds: 60 }]
+        : [prescription(), prescription(), prescription()],
     };
   }
   start(id) {
