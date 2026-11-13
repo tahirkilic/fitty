@@ -1,0 +1,20 @@
+{
+  "name": "fitness-notebook",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "check": "node tests/check.mjs",
+    "format": "prettier --write dist tests *.md package.json .openai/hosting.json",
+    "format:check": "prettier --check dist tests *.md package.json .openai/hosting.json",
+    "lint": "eslint dist tests",
+    "typecheck": "tsc --noEmit",
+    "test:system": "node --test tests/browser.system.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "prettier": "3.6.2",
+    "eslint": "9.39.1",
+    "playwright": "1.56.1"
+  }
+}

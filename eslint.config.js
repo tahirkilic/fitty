@@ -1,0 +1,1 @@
+export default [{ files: ['dist/**/*.js','tests/**/*.js','tests/**/*.mjs'], rules: {'no-unreachable':'error','no-constant-condition':'error','no-dupe-keys':'error','no-duplicate-case':'error','no-unused-labels':'error','no-unsafe-finally':'error','valid-typeof':'error','constructor-super':'error'} }];

@@ -1,0 +1,224 @@
+export const clone = (value) => structuredClone(value);
+/** @returns {import('../types.js').Data} */
+export const emptyData = () => ({
+  exercises: [],
+  plans: [],
+  rotation: [],
+  next: 0,
+  sessions: [],
+  active: null,
+});
+export function invariant(condition, message) {
+  if (!condition) throw new Error(message);
+}
+export function prescription(weight = 0, reps = 10) {
+  return { weight, reps };
+}
+/** @returns {import('../types.js').Data} */
+export function validateData(data) {
+  const object = (v) => v && typeof v === "object" && !Array.isArray(v);
+  const str = (v, label) =>
+    invariant(
+      typeof v === "string" && v.length > 0 && v.length < 10000,
+      `Invalid ${label}`,
+    );
+  const number = (v, integer = false) =>
+    invariant(
+      Number.isFinite(v) &&
+        v >= 0 &&
+        v <= 100000 &&
+        (!integer || Number.isInteger(v)),
+      "Invalid numeric value",
+    );
+  const array = (v) =>
+    invariant(Array.isArray(v) && v.length <= 10000, "Invalid collection");
+  const date = (v) =>
+    invariant(
+      typeof v === "string" && Number.isFinite(Date.parse(v)),
+      "Invalid timestamp",
+    );
+  const values = (v) => {
+    invariant(object(v), "Invalid set");
+    number(v.weight);
+    number(v.reps, true);
+  };
+  invariant(object(data), "Invalid data");
+  for (const key of ["exercises", "plans", "rotation", "sessions"])
+    array(data[key]);
+  const ids = (list) => {
+    const result = new Set();
+    for (const v of list) {
+      str(v.id, "ID");
+      invariant(!result.has(v.id), "Duplicate ID");
+      result.add(v.id);
+    }
+    return result;
+  };
+  const exerciseIds = ids(data.exercises),
+    planIds = ids(data.plans);
+  ids(data.sessions);
+  const display = (e) => {
+    str(e.name, "name");
+    invariant(
+      typeof e.number === "string" && typeof e.settings === "string",
+      "Invalid machine details",
+    );
+  };
+  for (const e of data.exercises) {
+    display(e);
+    invariant(typeof e.archived === "boolean", "Invalid archive flag");
+  }
+  const item = (e) => {
+    str(e.id, "item ID");
+    invariant(exerciseIds.has(e.exerciseId), "Unknown exercise");
+    display(e);
+    array(e.sets);
+    invariant(e.sets.length > 0, "At least one set is required");
+    e.sets.forEach(values);
+  };
+  for (const p of data.plans) {
+    str(p.name, "plan name");
+    number(p.version, true);
+    invariant(p.version > 0 && typeof p.archived === "boolean", "Invalid plan");
+    number(p.rest, true);
+    array(p.items);
+    ids(p.items);
+    p.items.forEach(item);
+  }
+  invariant(
+    new Set(data.rotation).size === data.rotation.length,
+    "Duplicate rotation plan",
+  );
+  data.rotation.forEach((id) =>
+    invariant(planIds.has(id), "Unknown rotation plan"),
+  );
+  number(data.next, true);
+  invariant(
+    data.next < Math.max(1, data.rotation.length),
+    "Invalid rotation position",
+  );
+  const session = (s, active) => {
+    str(s.id, "session ID");
+    str(s.name, "session name");
+    invariant(planIds.has(s.planId), "Unknown source plan");
+    number(s.planVersion, true);
+    date(s.startedAt);
+    invariant(
+      s.status === (active ? "active" : "finished"),
+      "Invalid session status",
+    );
+    if (!active) date(s.finishedAt);
+    number(s.rest, true);
+    number(s.warmup);
+    invariant(
+      s.restUntil === null || Number.isFinite(s.restUntil),
+      "Invalid timer",
+    );
+    invariant(
+      s.warmupStarted === null || Number.isFinite(s.warmupStarted),
+      "Invalid warmup timer",
+    );
+    array(s.base);
+    ids(s.base);
+    s.base.forEach(item);
+    array(s.items);
+    ids(s.items);
+    for (const e of s.items) {
+      item(e);
+      invariant(typeof e.skipped === "boolean", "Invalid skip status");
+      for (const set of e.sets) {
+        values(set.target);
+        invariant(typeof set.done === "boolean", "Invalid completion");
+        invariant(
+          set.previous === null || typeof set.previous === "string",
+          "Invalid previous source",
+        );
+      }
+    }
+  };
+  for (const s of data.sessions) session(s, false);
+  invariant(
+    data.active === null || object(data.active),
+    "Invalid active session",
+  );
+  if (data.active) {
+    session(data.active, true);
+    invariant(
+      !data.sessions.some((s) => s.id === data.active.id),
+      "Duplicate active session",
+    );
+  }
+  return clone(data);
+}
+/** @param {import('../types.js').Data} data */
+export function latestSet(data, exerciseId, index) {
+  const sessions = [...data.sessions].sort((a, b) =>
+    b.finishedAt.localeCompare(a.finishedAt),
+  );
+  for (const session of sessions)
+    for (const item of [...session.items].reverse()) {
+      const set = item.sets[index];
+      if (item.exerciseId === exerciseId && set?.done && !item.skipped)
+        return { weight: set.weight, reps: set.reps, date: session.finishedAt };
+    }
+  return null;
+}
+/** @param {import('../types.js').PlanItem} item @param {import('../types.js').Data} data @returns {import('../types.js').SessionItem} */
+export function sessionItem(item, data) {
+  return {
+    ...clone(item),
+    skipped: false,
+    sets: item.sets.map((target, index) => {
+      const previous = latestSet(data, item.exerciseId, index);
+      return {
+        ...(previous
+          ? { weight: previous.weight, reps: previous.reps }
+          : target),
+        target: clone(target),
+        done: false,
+        previous: previous?.date || null,
+      };
+    }),
+  };
+}
+/** @param {import('../types.js').SessionItem} item @returns {import('../types.js').PlanItem} */
+export const plannedItem = (item) => ({
+  id: item.id,
+  exerciseId: item.exerciseId,
+  name: item.name,
+  number: item.number,
+  settings: item.settings,
+  sets: item.sets.map((s) => clone(s.target)),
+});
+export function planChanges(session) {
+  const items = session.items.map(plannedItem),
+    base = session.base;
+  const changes = [];
+  if (
+    JSON.stringify(items.map((i) => i.id)) !==
+    JSON.stringify(base.map((i) => i.id))
+  )
+    changes.push({
+      key: "structure",
+      label: "Exercise selection and order",
+      before: base.map((i) => i.name).join(" → "),
+      after: items.map((i) => i.name).join(" → "),
+    });
+  for (const item of items) {
+    const old = base.find((i) => i.id === item.id);
+    if (old && JSON.stringify(old) !== JSON.stringify(item))
+      changes.push({
+        key: item.id,
+        label: item.name,
+        before: describe(old),
+        after: describe(item),
+      });
+  }
+  return changes;
+}
+function describe(i) {
+  return `${i.sets.map((s) => `${s.weight} kg × ${s.reps}`).join(", ")} · ${i.settings || "No settings"}`;
+}
+export function remainingSeconds(until, now) {
+  return until ? Math.max(0, Math.ceil((until - now) / 1000)) : 0;
+}

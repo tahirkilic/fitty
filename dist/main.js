@@ -1,0 +1,482 @@
+import { Training } from "./application/training.js";
+import {
+  LocalRepository,
+  encodeBackup,
+  decodeBackup,
+} from "./infrastructure/storage.js";
+import { ViewModel } from "./presentation/view-model.js";
+import { prescription } from "./domain/model.js";
+const clock = { now: () => Date.now(), iso: () => new Date().toISOString() };
+const root = document.getElementById("app");
+const escape = (value) =>
+  String(value ?? "").replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+const date = (value) =>
+  new Date(value).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+const minutes = (seconds) =>
+  `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
+let vm,
+  app,
+  offlineReady = false;
+try {
+  app = new Training(new LocalRepository(localStorage), clock, () =>
+    crypto.randomUUID(),
+  );
+  vm = new ViewModel(app, clock);
+} catch (error) {
+  root.innerHTML = `<main class="splash"><h1>Unable to open your data</h1><p>${escape(error.message)}</p><p>Existing storage has been kept. Do not clear website data. Export the raw data below for recovery.</p><button id="recover">Download recovery file</button></main>`;
+  document.getElementById("recover").onclick = () =>
+    download(
+      localStorage.getItem("form.fitness.v1") || "{}",
+      "fitness-recovery.json",
+    );
+}
+const button = (text, action, arg = "", cls = "") =>
+  `<button class="${cls}" data-action="${action}" data-arg="${escape(arg)}">${text}</button>`;
+function download(content, name) {
+  const url = URL.createObjectURL(
+    new Blob([content], { type: "application/json" }),
+  );
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function exportData() {
+  download(
+    encodeBackup(vm.data, clock.iso()),
+    `form-backup-${clock.iso().slice(0, 10)}.json`,
+  );
+}
+function heading(title, description, action = "") {
+  return `<div class="intro"><div><p class="eyebrow muted">YOUR TRAINING NOTEBOOK</p><h1 style="margin-top:9px">${title}</h1><p class="muted">${description}</p></div>${action}</div>`;
+}
+function home() {
+  const d = vm.data,
+    next = vm.next;
+  return (
+    heading(
+      "A little stronger.<br>Every session.",
+      "Your plans, your pace. Pick up where you left off.",
+    ) +
+    `<div class="grid"><div><section class="card hero"><div><p class="eyebrow">${d.active ? "WORKOUT IN PROGRESS" : "UP NEXT IN YOUR ROTATION"}</p><h2>${escape(d.active?.name || next?.name || "Make room for progress.")}</h2><p class="muted">${d.active ? "Your work is saved on this device." : next ? `${next.items.length} exercises · ${next.rest}s rest · At your own pace` : "Build your first plan to get started."}</p></div><div style="margin-top:30px">${d.active ? button("Resume workout ↗", "resume", "", "primary") : next ? button("Start workout ↗", "start", next.id, "primary") : button("Create your first plan ↗", "new-plan", "", "primary")}</div></section><section class="card"><div class="row between"><h3>Your rotation</h3>${button("Manage", "tab", "plans", "small ghost")}</div>${
+      d.rotation.length
+        ? d.rotation
+            .map((id, index) => {
+              const p = d.plans.find((p) => p.id === id);
+              return `<div class="list-row"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><strong>${escape(p.name)}</strong><p class="muted">${p.items.length} exercises</p></div>${index === d.next ? '<span class="badge">Next visit</span>' : ""}</div>`;
+            })
+            .join("")
+        : '<p class="empty">Your plans will appear here in visit order.</p>'
+    }</section></div><div><div class="two"><section class="card"><p class="eyebrow muted">SESSIONS</p><p class="stat">${d.sessions.length}</p><p class="muted">All time</p></section><section class="card"><p class="eyebrow muted">PLANS</p><p class="stat">${d.plans.filter((p) => !p.archived).length}</p><p class="muted">Ready to train</p></section></div><section class="card"><p class="eyebrow muted">LAST TIME HERE</p>${d.sessions.length ? `<h3 style="margin-top:18px">${escape(d.sessions.at(-1).name)}</h3><p class="muted" style="margin:8px 0 20px">${date(d.sessions.at(-1).finishedAt)} · ${d.sessions.at(-1).items.reduce((n, i) => n + i.sets.filter((s) => s.done).length, 0)} sets completed</p>${button("View training history →", "tab", "history", "ghost")}` : '<p class="empty">The first session is the start of your story.</p>'}</section><p class="muted" style="padding:0 10px">↳ Built for the gym. Saved on this device.<br>Export a backup regularly to keep your progress safe.</p></div></div>`
+  );
+}
+function catalog() {
+  return (
+    heading(
+      "Your equipment.",
+      "One record per machine. Shared across all your plans.",
+      button("+ Add exercise", "exercise", "", "dark"),
+    ) +
+    `<section class="card">${vm.data.exercises.map((e) => `<div class="list-row"><span class="num">${escape(e.number || "↗")}</span><div class="grow"><h3>${escape(e.name)}</h3><p class="muted">${escape(e.settings || "No machine settings")} ${e.archived ? "· Archived" : ""}</p></div>${button("Edit", "exercise", e.id, "small ghost")}</div>`).join("") || '<p class="empty">Add your first exercise or machine. Give similar machines different numbers.</p>'}</section>`
+  );
+}
+function plans() {
+  const d = vm.data;
+  return (
+    heading(
+      "A plan for each visit.",
+      "Rotate in visit order, with room to adapt on the day.",
+      button("+ New plan", "new-plan", "", "dark"),
+    ) +
+    d.plans
+      .filter((p) => !p.archived)
+      .map(
+        (p) =>
+          `<section class="card"><div class="row between"><div><span class="eyebrow muted">${p.rest}s REST · VERSION ${p.version}</span><h2 style="margin-top:8px">${escape(p.name)}</h2></div>${button("Start ↗", "start", p.id, "primary")}</div><p class="muted" style="margin:14px 0">${p.items.map((i) => escape(i.name)).join(" · ") || "No exercises yet"}</p><div class="row wrap">${button("Edit plan", "edit-plan", p.id, "ghost")}${button("Duplicate", "duplicate", p.id, "ghost")}${button("Archive", "archive-plan", p.id, "ghost")}</div></section>`,
+      )
+      .join("") +
+    `<section class="card"><h3>Rotation order</h3><p class="muted" style="margin:8px 0">Completed visits advance the rotation. Discarded visits do not.</p>${d.rotation.map((id) => `<div class="list-row"><div class="grow">${escape(d.plans.find((p) => p.id === id).name)}</div>${button("↑", "rotation-up", id, "small ghost")}${button("Remove", "rotation-remove", id, "small ghost")}</div>`).join("")}<label for="rotation-add">Add a plan to the rotation</label><select id="rotation-add" data-action="rotation-add"><option value="">Choose a plan…</option>${d.plans
+      .filter((p) => !p.archived && !d.rotation.includes(p.id))
+      .map((p) => `<option value="${p.id}">${escape(p.name)}</option>`)
+      .join("")}</select></section>`
+  );
+}
+function setRows(item, editor = false) {
+  return (
+    `<div class="set-grid header"><span>SET</span><span>KG</span><span>REPS</span><span>${editor ? "" : "DONE"}</span><span></span></div>` +
+    item.sets
+      .map(
+        (s, index) =>
+          `<div class="set-grid ${s.done ? "done-row" : ""}"><span class="muted">${index + 1}</span><input aria-label="${escape(item.name)} set ${index + 1} weight" type="number" inputmode="decimal" min="0" step="0.1" value="${s.weight}" data-field="${editor ? "plan" : "actual"}" data-id="${item.id}" data-index="${index}" data-key="weight"><input aria-label="${escape(item.name)} set ${index + 1} repetitions" type="number" inputmode="numeric" min="0" step="1" value="${s.reps}" data-field="${editor ? "plan" : "actual"}" data-id="${item.id}" data-index="${index}" data-key="reps">${editor ? "<span></span>" : button(s.done ? "✓" : "○", "complete", `${item.id}|${index}`, s.done ? "done" : "ghost")}${button("×", editor ? "plan-remove-set" : "remove-set", `${item.id}|${index}`, "ghost")}</div>${!editor ? `<p class="muted" style="font-size:11px;margin:5px 0 0 32px">Target ${s.target.weight} kg × ${s.target.reps} · ${s.previous ? `Previous: ${date(s.previous)}` : "Plan defaults"}</p>` : ""}`,
+      )
+      .join("")
+  );
+}
+function workout() {
+  const s = vm.data.active;
+  if (!s)
+    return (
+      heading("Ready when you are.", "Start a plan to begin logging.") +
+      button("Choose a plan", "tab", "plans", "dark")
+    );
+  return (
+    heading(
+      escape(s.name),
+      "Session changes stay here until you approve plan updates.",
+      button("Finish", "review", "", "dark"),
+    ) +
+    `<div class="timer row between"><div><span class="eyebrow">REST TIMER</span><br><strong id="rest-value">${minutes(vm.rest)}</strong></div><div class="row">${button("Restart", "timer", "restart", "ghost")}${button("Skip", "timer", "skip", "ghost")}</div></div><label for="jump-exercise">Jump to a machine</label><select id="jump-exercise" data-action="jump" style="margin-bottom:20px"><option value="">Choose an exercise…</option>${s.items.map((i) => `<option value="${i.id}">${escape(i.name)}</option>`).join("")}</select><section class="card"><div class="row between"><h3>↗ Cross-trainer warm-up</h3><span class="badge">Optional</span></div><div class="two"><div><label for="warmup">Minutes</label><input id="warmup" data-field="warmup" type="number" min="0" step="0.1" value="${Math.round(s.warmup / 6) / 10}"></div><div style="align-self:end">${button(s.warmupStarted === null ? "Start timer" : "Stop timer", "warmup", s.warmupStarted === null ? "start" : "stop", "ghost")}<p class="muted" id="warmup-value">${minutes(s.warmup + (s.warmupStarted === null ? 0 : (clock.now() - s.warmupStarted) / 1000))}</p></div></div></section>` +
+    s.items
+      .map(
+        (item, index) =>
+          `<section class="card" id="item-${item.id}"><div class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p></div>${button(item.skipped ? "Return" : "Skip", "skip", item.id, "small ghost")}</div><label>Settings for today<input aria-label="${escape(item.name)} settings" data-field="settings" data-id="${item.id}" value="${escape(item.settings)}"></label>${setRows(item)}<div class="row wrap" style="margin-top:18px">${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Replace", "replace", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}${button("Edit targets", "targets", item.id, "ghost")}</div></section>`,
+      )
+      .join("") +
+    `<section class="card"><label for="session-add">Add an exercise for today</label><select id="session-add" data-action="session-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select></section><div class="row between">${button("Discard workout", "discard", "", "danger")}${button("Review & finish →", "review", "", "dark")}</div>`
+  );
+}
+function exerciseOptions() {
+  return vm.data.exercises
+    .filter((e) => !e.archived)
+    .map(
+      (e) =>
+        `<option value="${e.id}">${escape(e.name)} ${e.number ? "· #" + escape(e.number) : ""}</option>`,
+    )
+    .join("");
+}
+function history() {
+  return (
+    heading(
+      "The work adds up.",
+      "Your history stays as it was, even when your plans change.",
+    ) +
+    vm.data.sessions
+      .slice()
+      .reverse()
+      .map(
+        (s) =>
+          `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(s.finishedAt)}</span></summary><p class="muted" style="margin:15px 0">Warm-up: ${minutes(s.warmup)} · ${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} completed sets</p>${s.items.map((i) => `<div class="list-row"><div><strong>${escape(i.name)} · #${escape(i.number || "—")}</strong><p class="muted">${escape(i.settings)} ${i.skipped ? "· Skipped" : ""}</p><p>${i.sets.map((x) => `${x.weight} kg × ${x.reps} ${x.done ? "✓" : "(unfinished)"}`).join(" · ")}</p></div></div>`).join("")}</details>`,
+      )
+      .join("") +
+    (!vm.data.sessions.length
+      ? '<section class="card empty">Your finished workouts will appear here.</section>'
+      : "")
+  );
+}
+function backup() {
+  return (
+    heading(
+      "Keep your progress.",
+      "A simple file. Your complete training notebook.",
+    ) +
+    `<section class="card"><h2>Export a backup</h2><p class="muted" style="margin:12px 0 20px">Includes machines, plans, rotation, history, and your current workout. Save to Files on your iPhone. You can upload this JSON file to ChatGPT for analysis.</p>${button("Download JSON backup ↗", "export", "", "dark")}</section><section class="card"><h2>Restore from a backup</h2><p class="muted" style="margin:12px 0">Restoring replaces all data on this device. A preview and confirmation appear before anything changes.</p><label for="import-file">Choose a JSON backup</label><input type="file" id="import-file" accept="application/json,.json"></section><section class="card"><h3>Use on your iPhone</h3><p class="muted" style="margin-top:12px">Open this address in Safari, sign in if asked, then tap Share → Add to Home Screen. Open once while online and wait for “Offline ready” above. Your next visits can be offline. Keep this same address: data belongs to this device and website.</p><p class="muted" style="margin-top:12px">To update, reopen online. New files activate on a later launch; local data is preserved. Export before clearing Safari data or changing devices. Rest timers recalculate when you reopen; lock-screen alerts are not provided.</p></section>`
+  );
+}
+function planModal() {
+  const p = vm.editor;
+  return `<h2>${p.id ? "Edit plan" : "Create a plan"}</h2><label for="plan-name">Plan name</label><input id="plan-name" value="${escape(p.name)}" data-field="plan-name" placeholder="e.g. Upper body A"><label for="plan-rest">Rest between sets (seconds, 0 to disable)</label><input id="plan-rest" type="number" min="0" step="1" value="${p.rest}" data-field="plan-rest">${p.items.map((i, index) => `<section class="card" style="margin-top:18px"><div class="row between"><h3>${escape(i.name)}</h3><div class="row">${button("↑", "plan-up", i.id, "small ghost")}${button("×", "plan-remove", i.id, "small ghost")}</div></div><label>Machine settings<input data-field="plan-settings" data-id="${i.id}" value="${escape(i.settings)}"></label>${setRows(i, true)}<div style="margin-top:12px">${button("+ Set", "plan-add-set", i.id, "ghost")}</div></section>`).join("")}<label for="plan-add">Add an exercise</label><select id="plan-add" data-action="plan-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select>${!vm.data.exercises.some((e) => !e.archived) ? '<p class="muted">Add machines in Exercises first.</p>' : ""}<footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Save plan", "save-plan", "", "dark")}</footer>`;
+}
+let exerciseEditor = null,
+  replaceId = null,
+  targetId = null;
+function modal() {
+  if (vm.editor) return planModal();
+  if (exerciseEditor) {
+    const e = exerciseEditor;
+    return `<h2>${e.id ? "Edit machine" : "Add an exercise"}</h2><label>Name<input id="exercise-name" value="${escape(e.name)}" placeholder="e.g. Chest press"></label><label>Machine number<input id="exercise-number" value="${escape(e.number)}" placeholder="e.g. 12"></label><label>Machine settings<textarea id="exercise-settings" placeholder="Seat 4 · backrest 2">${escape(e.settings)}</textarea></label><footer class="row wrap">${button("Cancel", "close", "", "ghost")}${e.id ? button("Archive", "archive-exercise", e.id, "ghost") : ""}${button("Save machine", "save-exercise", "", "dark")}</footer>`;
+  }
+  if (replaceId)
+    return `<h2>Replace exercise for today</h2><p class="muted">Recorded sets must be kept under their original machine.</p><label for="replacement">Replacement machine</label><select id="replacement">${exerciseOptions()}</select><footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Replace", "confirm-replace", replaceId, "dark")}</footer>`;
+  if (targetId) {
+    const i = vm.data.active.items.find((i) => i.id === targetId);
+    return `<h2>Plan targets · ${escape(i.name)}</h2><p class="muted">Edit prescriptions separately from actual results. Review them when finishing to apply to your plan.</p>${i.sets.map((s, n) => `<label>Set ${n + 1} · kg / reps</label><div class="two"><input type="number" min="0" step="0.1" aria-label="Target weight ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="weight" value="${s.target.weight}"><input type="number" min="0" step="1" aria-label="Target repetitions ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="reps" value="${s.target.reps}"></div>`).join("")}<footer>${button("Done", "close", "", "dark")}</footer>`;
+  }
+  if (vm.review) {
+    const s = vm.data.active,
+      p = vm.data.plans.find((p) => p.id === s.planId),
+      changes = app.changes();
+    const unfinished = s.items.reduce(
+      (n, i) => n + i.sets.filter((x) => !x.done).length,
+      0,
+    );
+    return `<h2>Finish your visit</h2><p>${unfinished ? `${unfinished} unfinished sets will stay marked unfinished. Exercises with no completed sets are marked skipped.` : "All sets complete. A good day’s work."}</p><div class="rule"></div><h3>Optional plan updates</h3><p class="muted" style="margin-top:8px">Actual results and skips never update targets automatically. Select only the changes you want to keep.</p>${p.version !== s.planVersion ? '<p class="message error">Your source plan has changed. Finish with no updates to keep its newer version.</p>' : changes.map((c) => `<label class="check"><input type="checkbox" name="plan-change" value="${c.key}"><div><strong>${escape(c.label)}</strong><p>Before: ${escape(c.before)}</p><p>After: ${escape(c.after)}</p></div></label>`).join("") || '<p class="empty">No prescription changes to apply.</p>'}<footer class="row between">${button("Keep training", "close", "", "ghost")}${button("Save finished workout", "finish", "", "dark")}</footer>`;
+  }
+  if (vm.importData) {
+    const d = vm.importData;
+    return `<h2>Replace this device’s data?</h2><p>Backup contains ${d.exercises.length} machines, ${d.plans.length} plans, ${d.sessions.length} finished workouts, and ${d.active ? "an active workout" : "no active workout"}.</p><p style="margin-top:14px">All current data will be replaced. Export your current notebook before continuing.</p><footer class="stack">${button("Export current data first", "export", "", "ghost")}${button("Replace all data", "confirm-import", "", "danger")}${button("Cancel", "close", "", "ghost")}</footer>`;
+  }
+  return "";
+}
+function render() {
+  if (!vm) return;
+  const content = { home, plans, exercises: catalog, workout, history, backup };
+  const m = modal();
+  root.innerHTML = `<main class="shell"><header class="top"><div class="brand"><span>ƒ</span>form<span style="background:transparent;font-size:12px;font-weight:400;letter-spacing:0">/ training</span></div><span class="status"><span class="dot"></span><span id="offline-state">${offlineReady ? "Offline ready" : "Local notebook"}</span></span></header>${vm.error ? `<div role="alert" class="message error">${escape(vm.error)}</div>` : ""}${vm.notice ? `<div role="status" class="message">${escape(vm.notice)}</div>` : ""}${content[vm.tab]()}</main><nav aria-label="Main navigation" class="nav">${[
+    ["home", "Home"],
+    ["plans", "Plans"],
+    ["exercises", "Exercises"],
+    ["workout", "Workout"],
+    ["history", "History"],
+    ["backup", "Backup"],
+  ]
+    .map(([id, name]) => button(name, "tab", id, vm.tab === id ? "active" : ""))
+    .join(
+      "",
+    )}</nav>${m ? `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-label="Edit and review">${vm.error ? `<p role="alert" class="message error">${escape(vm.error)}</p>` : ""}${m}</section></div>` : ""}`;
+}
+const actions = {
+  tab: (id) => {
+    vm.tab = id;
+    vm.notice = "";
+  },
+  "new-plan": () => vm.editPlan(),
+  "edit-plan": (id) => vm.editPlan(id),
+  exercise: (id) => {
+    exerciseEditor = id
+      ? { ...vm.data.exercises.find((e) => e.id === id) }
+      : { name: "", number: "", settings: "" };
+  },
+  close: () => {
+    vm.editor = null;
+    exerciseEditor = null;
+    replaceId = null;
+    targetId = null;
+    vm.review = false;
+    vm.importData = null;
+  },
+  "save-exercise": () => {
+    const name = document.getElementById("exercise-name").value.trim();
+    if (!name) throw new Error("Enter an exercise name.");
+    app.exercise(
+      {
+        name,
+        number: document.getElementById("exercise-number").value,
+        settings: document.getElementById("exercise-settings").value,
+      },
+      exerciseEditor.id,
+    );
+    exerciseEditor = null;
+  },
+  "archive-exercise": (id) => {
+    app.archiveExercise(id);
+    exerciseEditor = null;
+  },
+  "save-plan": () => {
+    const p = vm.editor;
+    if (!p.name.trim()) throw new Error("Give your plan a name.");
+    app.plan({ name: p.name.trim(), rest: p.rest, items: p.items }, p.id);
+    vm.editor = null;
+  },
+  "plan-add": (id) => {
+    if (id) vm.editor.items.push(app.makeItem(id));
+  },
+  "plan-remove": (id) => {
+    vm.editor.items = vm.editor.items.filter((i) => i.id !== id);
+  },
+  "plan-up": (id) => {
+    const a = vm.editor.items,
+      n = a.findIndex((i) => i.id === id);
+    if (n > 0) a.splice(n - 1, 0, a.splice(n, 1)[0]);
+  },
+  "plan-add-set": (id) =>
+    vm.editor.items.find((i) => i.id === id).sets.push(prescription()),
+  "plan-remove-set": (arg) => {
+    const [id, n] = arg.split("|");
+    const i = vm.editor.items.find((i) => i.id === id);
+    if (i.sets.length > 1) i.sets.splice(+n, 1);
+  },
+  duplicate: (id) => app.duplicate(id),
+  "archive-plan": (id) => app.archivePlan(id),
+  "rotation-up": (id) => {
+    const ids = [...vm.data.rotation],
+      i = ids.indexOf(id);
+    if (i > 0) ids.splice(i - 1, 0, ids.splice(i, 1)[0]);
+    app.rotation(ids);
+  },
+  "rotation-remove": (id) =>
+    app.rotation(vm.data.rotation.filter((i) => i !== id)),
+  "rotation-add": (id) => {
+    if (id) app.rotation([...vm.data.rotation, id]);
+  },
+  start: (id) => {
+    app.start(id);
+    vm.tab = "workout";
+  },
+  resume: () => {
+    vm.tab = "workout";
+  },
+  complete: (arg) => {
+    const [id, index] = arg.split("|");
+    app.complete(id, +index);
+  },
+  "add-set": (id) => app.addSet(id),
+  "remove-set": (arg) => {
+    const [id, index] = arg.split("|");
+    app.removeSet(id, +index);
+  },
+  skip: (id) => app.skip(id),
+  "move-up": (id) => app.move(id, -1),
+  defer: (id) => app.move(id, vm.data.active.items.length),
+  "session-add": (id) => {
+    if (id) app.addExercise(id);
+  },
+  replace: (id) => {
+    replaceId = id;
+  },
+  "confirm-replace": (id) => {
+    const choice = document.getElementById("replacement").value;
+    if (!choice) throw new Error("Choose a replacement machine.");
+    app.addExercise(choice, id);
+    replaceId = null;
+  },
+  "remove-exercise": (id) => app.removeExercise(id),
+  targets: (id) => {
+    targetId = id;
+  },
+  timer: (action) => app.timer(action),
+  warmup: (action) => app.warmup(action),
+  jump: (id) => {
+    document
+      .getElementById("item-" + id)
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+  },
+  review: () => {
+    vm.review = true;
+  },
+  finish: () => {
+    const selected = [
+      ...document.querySelectorAll('[name="plan-change"]:checked'),
+    ].map((i) => i.value);
+    app.finish(selected);
+    vm.review = false;
+    vm.tab = "history";
+    vm.notice = "Workout saved. Your next plan is ready.";
+  },
+  discard: () => {
+    if (
+      confirm(
+        "Discard this active workout? Its recorded sets will be lost. Your rotation will not advance.",
+      )
+    ) {
+      app.discard();
+      vm.tab = "home";
+    }
+  },
+  export: exportData,
+  "confirm-import": () => {
+    app.restore(vm.importData);
+    vm.importData = null;
+    vm.tab = "home";
+    vm.notice = "Backup restored successfully.";
+  },
+};
+root.addEventListener("click", (event) => {
+  const el = event.target.closest("button[data-action]");
+  if (!el || !vm) return;
+  vm.run(() => actions[el.dataset.action]?.(el.dataset.arg));
+  render();
+});
+root.addEventListener("change", async (event) => {
+  const el = event.target;
+  if (!vm) return;
+  if (el.id === "import-file") {
+    try {
+      const file = el.files[0];
+      if (!file) return;
+      if (file.size > 10000000)
+        throw new Error("Backup is too large (10 MB limit).");
+      vm.importData = decodeBackup(await file.text());
+      vm.error = "";
+    } catch (e) {
+      vm.error = e.message;
+    }
+    render();
+    return;
+  }
+  vm.run(() => {
+    if (el.tagName === "SELECT" && el.dataset.action) {
+      actions[el.dataset.action](el.value);
+      return;
+    }
+    const f = el.dataset.field;
+    if (!f) return;
+    const id = el.dataset.id,
+      n = +el.dataset.index,
+      key = el.dataset.key;
+    const numeric = () => {
+      if (el.value.trim() === "" || !el.checkValidity())
+        throw new Error(
+          "Enter a valid non-negative number. Repetitions must be whole numbers.",
+        );
+      return Number(el.value);
+    };
+    if (f === "plan-name") vm.editor.name = el.value;
+    else if (f === "plan-rest") vm.editor.rest = numeric();
+    else if (f === "plan-settings")
+      vm.editor.items.find((i) => i.id === id).settings = el.value;
+    else if (f === "plan")
+      vm.editor.items.find((i) => i.id === id).sets[n][key] = numeric();
+    else if (f === "actual") app.set(id, n, { [key]: numeric() });
+    else if (f === "target") app.target(id, n, key, numeric());
+    else if (f === "settings") app.settings(id, el.value);
+    else if (f === "warmup") app.warmup("manual", numeric() * 60);
+  });
+  if (
+    (el.tagName === "SELECT" &&
+      el.dataset.action &&
+      el.dataset.action !== "jump") ||
+    vm.error
+  )
+    render();
+});
+if (vm) {
+  render();
+  setInterval(() => {
+    if (vm.data.active) {
+      const r = document.getElementById("rest-value");
+      if (r) r.textContent = minutes(vm.rest);
+      const w = document.getElementById("warmup-value"),
+        s = vm.data.active;
+      if (w)
+        w.textContent = minutes(
+          s.warmup +
+            (s.warmupStarted === null
+              ? 0
+              : (clock.now() - s.warmupStarted) / 1000),
+        );
+    }
+  }, 1000);
+  if ("serviceWorker" in navigator)
+    navigator.serviceWorker
+      .register("./sw.js")
+      .then(async (registration) => {
+        await navigator.serviceWorker.ready;
+        const check = async () => {
+          offlineReady = await caches.has("form-shell-v2");
+          const status = document.getElementById("offline-state");
+          if (status)
+            status.textContent = offlineReady
+              ? "Offline ready"
+              : "Local notebook";
+        };
+        if (registration.installing)
+          registration.installing.addEventListener("statechange", check);
+        await check();
+      })
+      .catch(() => {
+        vm.notice =
+          "Offline setup did not complete. Reopen online to try again.";
+        render();
+      });
+}
