@@ -230,7 +230,7 @@ for (const [engine, type] of [
         .click();
       await page
         .getByText(
-          /Clever Fit imported: 4 machines, 2 plans, 2 workouts and 5 sets/,
+          /Clever Fit imported: 5 machines, 2 plans, 2 workouts and 5 sets/,
         )
         .waitFor();
       await page
