@@ -513,7 +513,7 @@ if (vm) {
       .then(async (registration) => {
         await navigator.serviceWorker.ready;
         const check = async () => {
-          offlineReady = await caches.has("form-shell-v2");
+          offlineReady = await caches.has("form-shell-v3");
           const status = document.getElementById("offline-state");
           if (status)
             status.textContent = offlineReady
