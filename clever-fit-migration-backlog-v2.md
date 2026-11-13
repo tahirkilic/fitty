@@ -8,19 +8,19 @@ Requirements: migrate exercises/devices, create the editable plans **Einheit A**
 
 The personal source file is supplied to the app by the user through the browser's Files picker; it is **not committed** to GitHub.
 
-| Measure | Source |
-| --- | ---: |
-| Source plan names | 2 |
-| Historical sessions | 47 |
-| Source exercise-name strings | 27 |
-| Distinct exercise identity slots (second Butterfly machine occurrence) | 28 |
-| Exercise occurrences (within workouts) | 539 |
-| Sets | 1,557 |
-| Null weights | 64 |
-| Null repetitions | 43 |
-| Timed cardio occurrences | 27 |
-| Timed isometric occurrences | 6 |
-| First/last dates | 2026-04-27 / 2026-11-09 |
+| Measure                                                                |                  Source |
+| ---------------------------------------------------------------------- | ----------------------: |
+| Source plan names                                                      |                       2 |
+| Historical sessions                                                    |                      47 |
+| Source exercise-name strings                                           |                      27 |
+| Distinct exercise identity slots (second Butterfly machine occurrence) |                      28 |
+| Exercise occurrences (within workouts)                                 |                     539 |
+| Sets                                                                   |                   1,557 |
+| Null weights                                                           |                      64 |
+| Null repetitions                                                       |                      43 |
+| Timed cardio occurrences                                               |                      27 |
+| Timed isometric occurrences                                            |                       6 |
+| First/last dates                                                       | 2026-04-27 / 2026-11-09 |
 
 `Einheit A` uses the latest 2026-06-17 session (9 exercise occurrences) as the default editable plan template; `Ganzkörper` uses the latest 2026-11-09 session (14 exercise occurrences). Other reference workouts can be selected during import. The source does not contain machine numbers, machine settings, plan rest times, or actual clock times; these remain unknown/blank and the plan rest time is an explicit editable default (90s).
 
@@ -51,15 +51,15 @@ The personal source file is supplied to the app by the user through the browser'
 
 ## Acceptance criteria → checks
 
-| Acceptance criteria | Test / check |
-| --- | --- |
-| Parsing, malformed file, invalid calendar date and values | `tests/clever-fit.test.js`: CF01 |
-| Separate duplicate devices, exact-match catalog reuse | `tests/clever-fit.test.js`: CF03 |
-| All three entity categories, plan links, history, prefilling | `tests/clever-fit.test.js`: CF03–CF07 |
-| Atomic failure, no replacement, re-import idempotence | `tests/clever-fit.test.js`: CF04/CF05 |
-| Versioned backup round-trip | `tests/clever-fit.test.js`: CF09 |
-| File picker, UI preview, plans/history, offline, WebKit | `tests/browser.system.mjs`: Clever Fit |
-| 47 sessions, 539 occurrences, 1,557 sets, 28 identities | `CLEVER_FIT_FIXTURE_PATH=/path/to/workout_sessions_merged.json npm test` |
+| Acceptance criteria                                          | Test / check                                                             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Parsing, malformed file, invalid calendar date and values    | `tests/clever-fit.test.js`: CF01                                         |
+| Separate duplicate devices, exact-match catalog reuse        | `tests/clever-fit.test.js`: CF03                                         |
+| All three entity categories, plan links, history, prefilling | `tests/clever-fit.test.js`: CF03–CF07                                    |
+| Atomic failure, no replacement, re-import idempotence        | `tests/clever-fit.test.js`: CF04/CF05                                    |
+| Versioned backup round-trip                                  | `tests/clever-fit.test.js`: CF09                                         |
+| File picker, UI preview, plans/history, offline, WebKit      | `tests/browser.system.mjs`: Clever Fit                                   |
+| 47 sessions, 539 occurrences, 1,557 sets, 28 identities      | `CLEVER_FIT_FIXTURE_PATH=/path/to/workout_sessions_merged.json npm test` |
 
 ## Final release gate
 
