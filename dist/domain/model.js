@@ -76,7 +76,9 @@ export function validateData(data) {
         !Array.isArray(data.cleverFitMappings),
       "Invalid import mapping table",
     );
-    for (const [sourceIdentity, exerciseId] of Object.entries(data.cleverFitMappings)) {
+    for (const [sourceIdentity, exerciseId] of Object.entries(
+      data.cleverFitMappings,
+    )) {
       str(sourceIdentity, "source mapping");
       invariant(exerciseIds.has(exerciseId), "Unknown mapped exercise");
     }

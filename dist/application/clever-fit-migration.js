@@ -29,8 +29,10 @@ export class CleverFitMigration {
           choices.mappings[identity.key] === saved,
         `Existing mapping for ${identity.label} cannot be changed during reimport.`,
       );
-      invariant(data.exercises.some((e) => e.id === saved),
-        `Previously mapped machine is missing: ${identity.label}`);
+      invariant(
+        data.exercises.some((e) => e.id === saved),
+        `Previously mapped machine is missing: ${identity.label}`,
+      );
       return saved;
     }
     if (current) return current.id;
