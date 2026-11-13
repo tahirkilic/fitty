@@ -22,6 +22,17 @@ export class CleverFitMigration {
     const current = data.exercises.find(
       (e) => e.importSourceKey === catalogKey(identity.key),
     );
+    const saved = data.cleverFitMappings?.[identity.key];
+    if (saved) {
+      invariant(
+        !hasOwn(choices.mappings || {}, identity.key) ||
+          choices.mappings[identity.key] === saved,
+        `Existing mapping for ${identity.label} cannot be changed during reimport.`,
+      );
+      invariant(data.exercises.some((e) => e.id === saved),
+        `Previously mapped machine is missing: ${identity.label}`);
+      return saved;
+    }
     if (current) return current.id;
     if (hasOwn(choices.mappings || {}, identity.key)) {
       const id = choices.mappings[identity.key];
@@ -134,6 +145,7 @@ export class CleverFitMigration {
     };
     this.training.transact((draft) => {
       const catalog = new Map();
+      if (!draft.cleverFitMappings) draft.cleverFitMappings = {};
       for (const identity of summary.identities) {
         const mapping = selected.get(identity.key);
         if (mapping !== "new") {
@@ -142,6 +154,7 @@ export class CleverFitMigration {
             `Exercise mapping changed: ${identity.label}`,
           );
           catalog.set(identity.key, mapping);
+          draft.cleverFitMappings[identity.key] = mapping;
           continue;
         }
         const existing = draft.exercises.find(
@@ -149,6 +162,7 @@ export class CleverFitMigration {
         );
         if (existing) {
           catalog.set(identity.key, existing.id);
+          draft.cleverFitMappings[identity.key] = existing.id;
           continue;
         }
         const id = this.training.ids();
@@ -162,6 +176,7 @@ export class CleverFitMigration {
           importSourceKey: catalogKey(identity.key),
         });
         catalog.set(identity.key, id);
+        draft.cleverFitMappings[identity.key] = id;
         result.exercises++;
       }
       const planIds = new Map();
