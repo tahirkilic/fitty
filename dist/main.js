@@ -1,4 +1,7 @@
 import { Training } from "./application/training.js";
+import { CleverFitMigration } from "./application/clever-fit-migration.js";
+import { parseCleverFit } from "./infrastructure/clever-fit.js";
+import { sessionDay } from "./domain/clever-fit.js";
 import {
   LocalRepository,
   encodeBackup,
@@ -16,22 +19,27 @@ const escape = (value) =>
         c
       ],
   );
-const date = (value) =>
-  new Date(value).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
+const date = (value) => {
+  const day = String(value || "").slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(day)
+    ? `${day.slice(8, 10)}.${day.slice(5, 7)}.${day.slice(0, 4)}`
+    : "Unknown date";
+};
+const results = (set, kind) => kind === "cardio" || kind === "isometric"
+  ? `${set.durationSeconds === null || set.durationSeconds === undefined ? "—" : minutes(set.durationSeconds)} min`
+  : `${set.weight ?? "—"} kg × ${set.reps ?? "—"}`;
 const minutes = (seconds) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 let vm,
   app,
+  migration,
   offlineReady = false;
 try {
   app = new Training(new LocalRepository(localStorage), clock, () =>
     crypto.randomUUID(),
   );
   vm = new ViewModel(app, clock);
+  migration = new CleverFitMigration(app);
 } catch (error) {
   root.innerHTML = `<main class="splash"><h1>Unable to open your data</h1><p>${escape(error.message)}</p><p>Existing storage has been kept. Do not clear website data. Export the raw data below for recovery.</p><button id="recover">Download recovery file</button></main>`;
   document.getElementById("recover").onclick = () =>
@@ -78,7 +86,7 @@ function home() {
             })
             .join("")
         : '<p class="empty">Your plans will appear here in visit order.</p>'
-    }</section></div><div><div class="two"><section class="card"><p class="eyebrow muted">SESSIONS</p><p class="stat">${d.sessions.length}</p><p class="muted">All time</p></section><section class="card"><p class="eyebrow muted">PLANS</p><p class="stat">${d.plans.filter((p) => !p.archived).length}</p><p class="muted">Ready to train</p></section></div><section class="card"><p class="eyebrow muted">LAST TIME HERE</p>${d.sessions.length ? `<h3 style="margin-top:18px">${escape(d.sessions.at(-1).name)}</h3><p class="muted" style="margin:8px 0 20px">${date(d.sessions.at(-1).finishedAt)} · ${d.sessions.at(-1).items.reduce((n, i) => n + i.sets.filter((s) => s.done).length, 0)} sets completed</p>${button("View training history →", "tab", "history", "ghost")}` : '<p class="empty">The first session is the start of your story.</p>'}</section><p class="muted" style="padding:0 10px">↳ Built for the gym. Saved on this device.<br>Export a backup regularly to keep your progress safe.</p></div></div>`
+    }</section></div><div><div class="two"><section class="card"><p class="eyebrow muted">SESSIONS</p><p class="stat">${d.sessions.length}</p><p class="muted">All time</p></section><section class="card"><p class="eyebrow muted">PLANS</p><p class="stat">${d.plans.filter((p) => !p.archived).length}</p><p class="muted">Ready to train</p></section></div><section class="card"><p class="eyebrow muted">LAST TIME HERE</p>${d.sessions.length ? `<h3 style="margin-top:18px">${escape([...d.sessions].sort((a, b) => sessionDay(a).localeCompare(sessionDay(b))).at(-1).name)}</h3><p class="muted" style="margin:8px 0 20px">${date(sessionDay([...d.sessions].sort((a, b) => sessionDay(a).localeCompare(sessionDay(b))).at(-1)))} · ${[...d.sessions].sort((a, b) => sessionDay(a).localeCompare(sessionDay(b))).at(-1).items.reduce((n, i) => n + i.sets.filter((s) => s.done).length, 0)} sets completed</p>${button("View training history →", "tab", "history", "ghost")}` : '<p class="empty">The first session is the start of your story.</p>'}</section><p class="muted" style="padding:0 10px">↳ Built for the gym. Saved on this device.<br>Export a backup regularly to keep your progress safe.</p></div></div>`
   );
 }
 function catalog() {
@@ -113,14 +121,24 @@ function plans() {
   );
 }
 function setRows(item, editor = false) {
+  const timed = item.kind === "cardio" || item.kind === "isometric";
   return (
-    `<div class="set-grid header"><span>SET</span><span>KG</span><span>REPS</span><span>${editor ? "" : "DONE"}</span><span></span></div>` +
-    item.sets
-      .map(
-        (s, index) =>
-          `<div class="set-grid ${s.done ? "done-row" : ""}"><span class="muted">${index + 1}</span><input aria-label="${escape(item.name)} set ${index + 1} weight" type="number" inputmode="decimal" min="0" step="0.1" value="${s.weight}" data-field="${editor ? "plan" : "actual"}" data-id="${item.id}" data-index="${index}" data-key="weight"><input aria-label="${escape(item.name)} set ${index + 1} repetitions" type="number" inputmode="numeric" min="0" step="1" value="${s.reps}" data-field="${editor ? "plan" : "actual"}" data-id="${item.id}" data-index="${index}" data-key="reps">${editor ? "<span></span>" : button(s.done ? "✓" : "○", "complete", `${item.id}|${index}`, s.done ? "done" : "ghost")}${button("×", editor ? "plan-remove-set" : "remove-set", `${item.id}|${index}`, "ghost")}</div>${!editor ? `<p class="muted" style="font-size:11px;margin:5px 0 0 32px">Target ${s.target.weight} kg × ${s.target.reps} · ${s.previous ? `Previous: ${date(s.previous)}` : "Plan defaults"}</p>` : ""}`,
-      )
-      .join("")
+    `<div class="set-grid header"><span>SET</span><span>${timed ? "SECONDS" : "KG"}</span><span>${timed ? "" : "REPS"}</span><span>${editor ? "" : "DONE"}</span><span></span></div>` +
+    item.sets.map((set, index) => {
+      const field = editor ? "plan" : "actual";
+      const input = (key, type, value, step, label) =>
+        `<input aria-label="${escape(item.name)} set ${index + 1} ${label}" type="number" inputmode="${type}" min="0" step="${step}" value="${value ?? ""}" data-field="${field}" data-id="${item.id}" data-index="${index}" data-key="${key}">`;
+      const measurements = timed
+        ? input("durationSeconds", "numeric", set.durationSeconds, 1, "duration seconds") + "<span></span>"
+        : input("weight", "decimal", set.weight, 0.1, "weight") +
+          input("reps", "numeric", set.reps, 1, "repetitions");
+      const action = editor ? "<span></span>" :
+        button(set.done ? "✓" : "○", "complete", `${item.id}|${index}`, set.done ? "done" : "ghost");
+      const previous = !editor
+        ? `<p class="muted" style="font-size:11px;margin:5px 0 0 32px">Target ${results(set.target, item.kind)} · ${set.previous ? `Previous: ${date(set.previous)}` : "Plan defaults"}</p>`
+        : "";
+      return `<div class="set-grid ${set.done ? "done-row" : ""}"><span class="muted">${index + 1}</span>${measurements}${action}${button("×", editor ? "plan-remove-set" : "remove-set", `${item.id}|${index}`, "ghost")}</div>${previous}`;
+    }).join("")
   );
 }
 function workout() {
@@ -157,18 +175,11 @@ function exerciseOptions() {
 }
 function history() {
   return (
-    heading(
-      "The work adds up.",
-      "Your history stays as it was, even when your plans change.",
-    ) +
-    vm.data.sessions
-      .slice()
-      .reverse()
-      .map(
-        (s) =>
-          `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(s.finishedAt)}</span></summary><p class="muted" style="margin:15px 0">Warm-up: ${minutes(s.warmup)} · ${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} completed sets</p>${s.items.map((i) => `<div class="list-row"><div><strong>${escape(i.name)} · #${escape(i.number || "—")}</strong><p class="muted">${escape(i.settings)} ${i.skipped ? "· Skipped" : ""}</p><p>${i.sets.map((x) => `${x.weight} kg × ${x.reps} ${x.done ? "✓" : "(unfinished)"}`).join(" · ")}</p></div></div>`).join("")}</details>`,
-      )
-      .join("") +
+    heading("The work adds up.", "Your history stays as it was, even when your plans change.") +
+    vm.data.sessions.slice().sort((a, b) => sessionDay(b).localeCompare(sessionDay(a)))
+      .map((s) =>
+        `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}Warm-up: ${minutes(s.warmup)} · ${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map((i) => `<div class="list-row"><div><strong>${escape(i.name)} · #${escape(i.number || "—")}</strong><p class="muted">${escape(i.settings)} ${i.skipped ? "· Skipped" : ""}</p><p>${i.sets.map((x) => `${results(x, i.kind)} ${x.done ? "✓" : "(unfinished)"}`).join(" · ")}</p></div></div>`).join("")}</details>`
+      ).join("") +
     (!vm.data.sessions.length
       ? '<section class="card empty">Your finished workouts will appear here.</section>'
       : "")
@@ -180,7 +191,7 @@ function backup() {
       "Keep your progress.",
       "A simple file. Your complete training notebook.",
     ) +
-    `<section class="card"><h2>Export a backup</h2><p class="muted" style="margin:12px 0 20px">Includes machines, plans, rotation, history, and your current workout. Save to Files on your iPhone. You can upload this JSON file to ChatGPT for analysis.</p>${button("Download JSON backup ↗", "export", "", "dark")}</section><section class="card"><h2>Restore from a backup</h2><p class="muted" style="margin:12px 0">Restoring replaces all data on this device. A preview and confirmation appear before anything changes.</p><label for="import-file">Choose a JSON backup</label><input type="file" id="import-file" accept="application/json,.json"></section><section class="card"><h3>Use on your iPhone</h3><p class="muted" style="margin-top:12px">Open this address in Safari, sign in if asked, then tap Share → Add to Home Screen. Open once while online and wait for “Offline ready” above. Your next visits can be offline. Keep this same address: data belongs to this device and website.</p><p class="muted" style="margin-top:12px">To update, reopen online. New files activate on a later launch; local data is preserved. Export before clearing Safari data or changing devices. Rest timers recalculate when you reopen; lock-screen alerts are not provided.</p></section>`
+    `<section class="card"><h2>Export a backup</h2><p class="muted" style="margin:12px 0 20px">Includes machines, plans, rotation, history, and your current workout. Save to Files on your iPhone. You can upload this JSON file to ChatGPT for analysis.</p>${button("Download JSON backup ↗", "export", "", "dark")}</section><section class="card"><h2>Restore from a backup</h2><p class="muted" style="margin:12px 0">Restoring replaces all data on this device. A preview and confirmation appear before anything changes.</p><label for="import-file">Choose a JSON backup</label><input type="file" id="import-file" accept="application/json,.json"></section><section class="card"><h2>Import from Clever Fit</h2><p class="muted" style="margin:12px 0">Adds exercises, both plans and historical workouts without replacing your existing data. Review mappings before importing; repeated imports are safe. Works offline.</p><label for="clever-file">Choose Clever Fit workout JSON</label><input type="file" id="clever-file" accept="application/json,.json"></section><section class="card"><h3>Use on your iPhone</h3><p class="muted" style="margin-top:12px">Open this address in Safari, sign in if asked, then tap Share → Add to Home Screen. Open once while online and wait for “Offline ready” above. Your next visits can be offline. Keep this same address: data belongs to this device and website.</p><p class="muted" style="margin-top:12px">To update, reopen online. New files activate on a later launch; local data is preserved. Export before clearing Safari data or changing devices. Rest timers recalculate when you reopen; lock-screen alerts are not provided.</p></section>`
   );
 }
 function planModal() {
@@ -211,6 +222,18 @@ function modal() {
       0,
     );
     return `<h2>Finish your visit</h2><p>${unfinished ? `${unfinished} unfinished sets will stay marked unfinished. Exercises with no completed sets are marked skipped.` : "All sets complete. A good day’s work."}</p><div class="rule"></div><h3>Optional plan updates</h3><p class="muted" style="margin-top:8px">Actual results and skips never update targets automatically. Select only the changes you want to keep.</p>${p.version !== s.planVersion ? '<p class="message error">Your source plan has changed. Finish with no updates to keep its newer version.</p>' : changes.map((c) => `<label class="check"><input type="checkbox" name="plan-change" value="${c.key}"><div><strong>${escape(c.label)}</strong><p>Before: ${escape(c.before)}</p><p>After: ${escape(c.after)}</p></div></label>`).join("") || '<p class="empty">No prescription changes to apply.</p>'}<footer class="row between">${button("Keep training", "close", "", "ghost")}${button("Save finished workout", "finish", "", "dark")}</footer>`;
+  }
+  if (vm.cleverSource) {
+    const preview = migration.preview(vm.cleverSource, vm.cleverChoices);
+    const options = vm.data.exercises.filter((e) => !e.archived).map((e) =>
+      `<option value="${escape(e.id)}">${escape(e.name)} ${e.number ? "· #" + escape(e.number) : ""}</option>`).join("");
+    return `<h2>Import Clever Fit training</h2><p>${preview.totalSessions} workouts · ${preview.exerciseOccurrences} exercise occurrences · ${preview.sets} sets</p><p class="muted">${preview.newSessions} new sessions, ${preview.duplicates} already imported. ${preview.newCatalog} new exercise/device records and ${preview.newPlans} new plans.</p><p class="muted">Machine numbers, settings and original rest durations are not available in the file. Rest defaults to 90 seconds in editable new plans. Exercise occurrences remain separate.</p><h3>Training plans</h3>${preview.plans.map((p) =>
+      `<label>${escape(p.name)} ${p.existingId ? "(already imported)" : p.nameConflict ? "(existing name: create separate Clever Fit plan)" : ""}<select data-field="clever-reference" data-name="${escape(p.name)}">${p.sessions.map((s) =>
+        `<option value="${escape(s.key)}" ${s.key === p.referenceKey ? "selected" : ""}>${date(s.date)}${s.key === p.referenceKey ? " · latest/reference" : ""}</option>`).join("")}</select></label>`
+    ).join("")}<h3>Exercise and machine matching</h3><p class="muted">Exact unique existing names may be reused. Spelling variants, such as Signature / Slignature, are never merged without your selection. The second Butterfly occurrence is a separate identity.</p>${preview.identities.map((e) =>
+      `<label>${escape(e.label)} · ${escape(e.type)}<select data-field="clever-mapping" data-key="${escape(e.key)}"><option value="new" ${e.mapping === "new" ? "selected" : ""}>Create a new record</option>${vm.data.exercises.filter((machine) => !machine.archived).map((machine) =>
+        `<option value="${escape(machine.id)}" ${machine.id === e.mapping ? "selected" : ""}>${escape(machine.name)} ${machine.number ? "· #" + escape(machine.number) : ""}</option>`).join("")}</select></label>`
+    ).join("")}<footer class="stack">${button("Export current data first", "export", "", "ghost")}${button("Import exercises, 2 plans and history", "confirm-clever", "", "dark")}${button("Cancel", "close", "", "ghost")}</footer>`;
   }
   if (vm.importData) {
     const d = vm.importData;
@@ -254,6 +277,8 @@ const actions = {
     targetId = null;
     vm.review = false;
     vm.importData = null;
+    vm.cleverSource = null;
+    vm.cleverChoices = { mappings: {}, references: {} };
   },
   "save-exercise": () => {
     const name = document.getElementById("exercise-name").value.trim();
@@ -374,6 +399,13 @@ const actions = {
     }
   },
   export: exportData,
+  "confirm-clever": () => {
+    const imported = migration.import(vm.cleverSource, vm.cleverChoices);
+    vm.cleverSource = null;
+    vm.cleverChoices = { mappings: {}, references: {} };
+    vm.tab = "plans";
+    vm.notice = `Clever Fit imported: ${imported.exercises} machines, ${imported.plans} plans, ${imported.sessions} workouts and ${imported.sets} sets. ${imported.skippedSessions} existing sessions skipped.`;
+  },
   "confirm-import": () => {
     app.restore(vm.importData);
     vm.importData = null;
@@ -390,6 +422,22 @@ root.addEventListener("click", (event) => {
 root.addEventListener("change", async (event) => {
   const el = event.target;
   if (!vm) return;
+  if (el.id === "clever-file") {
+    try {
+      const file = el.files[0];
+      if (!file) return;
+      if (file.size > 10000000) throw new Error("Clever Fit file is too large (10 MB limit).");
+      vm.cleverSource = parseCleverFit(await file.text());
+      vm.cleverChoices = { mappings: {}, references: {} };
+      migration.preview(vm.cleverSource, vm.cleverChoices);
+      vm.error = "";
+    } catch (error) {
+      vm.cleverSource = null;
+      vm.error = error.message;
+    }
+    render();
+    return;
+  }
   if (el.id === "import-file") {
     try {
       const file = el.files[0];
@@ -421,14 +469,16 @@ root.addEventListener("change", async (event) => {
         );
       return Number(el.value);
     };
-    if (f === "plan-name") vm.editor.name = el.value;
+    if (f === "clever-mapping") vm.cleverChoices.mappings[el.dataset.key] = el.value;
+    else if (f === "clever-reference") vm.cleverChoices.references[el.dataset.name] = el.value;
+    else if (f === "plan-name") vm.editor.name = el.value;
     else if (f === "plan-rest") vm.editor.rest = numeric();
     else if (f === "plan-settings")
       vm.editor.items.find((i) => i.id === id).settings = el.value;
     else if (f === "plan")
-      vm.editor.items.find((i) => i.id === id).sets[n][key] = numeric();
-    else if (f === "actual") app.set(id, n, { [key]: numeric() });
-    else if (f === "target") app.target(id, n, key, numeric());
+      vm.editor.items.find((i) => i.id === id).sets[n][key] = el.value.trim() === "" ? null : numeric();
+    else if (f === "actual") app.set(id, n, { [key]: el.value.trim() === "" ? null : numeric() });
+    else if (f === "target") app.target(id, n, key, el.value.trim() === "" ? null : numeric());
     else if (f === "settings") app.settings(id, el.value);
     else if (f === "warmup") app.warmup("manual", numeric() * 60);
   });
