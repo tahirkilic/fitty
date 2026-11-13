@@ -165,9 +165,15 @@ test("CF03–CF07: one atomic merge creates devices, two usable plans and date-o
 
 test("CF03/CF05: an explicitly mapped alias survives reimport and backup restore", () => {
   const { app, clock } = setup();
-  app.exercise({ name: "My shoulder machine", number: "42", settings: "Seat 3" });
+  app.exercise({
+    name: "My shoulder machine",
+    number: "42",
+    settings: "Seat 3",
+  });
   const input = parsed();
-  const identity = catalogIdentities(input.sessions).find((e) => e.name === "Butterfly machine");
+  const identity = catalogIdentities(input.sessions).find(
+    (e) => e.name === "Butterfly machine",
+  );
   const mappedId = app.data.exercises[0].id;
   const importer = migration(app);
   const choices = { mappings: { [identity.key]: mappedId } };
@@ -179,7 +185,10 @@ test("CF03/CF05: an explicitly mapped alias survives reimport and backup restore
   const second = importer.import(input);
   assert.equal(second.exercises, 0);
   assert.equal(app.data.exercises.length, count);
-  assert.throws(() => importer.import(input, { mappings: { [identity.key]: "new" } }), /cannot be changed/);
+  assert.throws(
+    () => importer.import(input, { mappings: { [identity.key]: "new" } }),
+    /cannot be changed/,
+  );
   const backup = encodeBackup(app.data, clock.iso());
   const restored = setup().app;
   restored.restore(decodeBackup(backup));
