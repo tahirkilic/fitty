@@ -266,13 +266,6 @@ function modal() {
   }
   if (vm.cleverSource) {
     const preview = migration.preview(vm.cleverSource, vm.cleverChoices);
-    const options = vm.data.exercises
-      .filter((e) => !e.archived)
-      .map(
-        (e) =>
-          `<option value="${escape(e.id)}">${escape(e.name)} ${e.number ? "· #" + escape(e.number) : ""}</option>`,
-      )
-      .join("");
     return `<h2>Import Clever Fit training</h2><p>${preview.totalSessions} workouts · ${preview.exerciseOccurrences} exercise occurrences · ${preview.sets} sets</p><p class="muted">${preview.newSessions} new sessions, ${preview.duplicates} already imported. ${preview.newCatalog} new exercise/device records and ${preview.newPlans} new plans.</p><p class="muted">Machine numbers, settings and original rest durations are not available in the file. Rest defaults to 90 seconds in editable new plans. Exercise occurrences remain separate.</p><h3>Training plans</h3>${preview.plans
       .map(
         (p) =>
@@ -289,7 +282,7 @@ function modal() {
       .map(
         (e) =>
           `<label>${escape(e.label)} · ${escape(e.type)}<select data-field="clever-mapping" data-key="${escape(e.key)}"><option value="new" ${e.mapping === "new" ? "selected" : ""}>Create a new record</option>${vm.data.exercises
-            .filter((machine) => !machine.archived)
+            .filter((machine) => !machine.archived && (machine.kind || "strength") === e.type)
             .map(
               (machine) =>
                 `<option value="${escape(machine.id)}" ${machine.id === e.mapping ? "selected" : ""}>${escape(machine.name)} ${machine.number ? "· #" + escape(machine.number) : ""}</option>`,
