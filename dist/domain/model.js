@@ -69,6 +69,18 @@ export function validateData(data) {
   };
   const exerciseIds = ids(data.exercises),
     planIds = ids(data.plans);
+  if (data.cleverFitMappings !== undefined) {
+    invariant(
+      data.cleverFitMappings !== null &&
+        typeof data.cleverFitMappings === "object" &&
+        !Array.isArray(data.cleverFitMappings),
+      "Invalid import mapping table",
+    );
+    for (const [sourceIdentity, exerciseId] of Object.entries(data.cleverFitMappings)) {
+      str(sourceIdentity, "source mapping");
+      invariant(exerciseIds.has(exerciseId), "Unknown mapped exercise");
+    }
+  }
   ids(data.sessions);
   const display = (e) => {
     str(e.name, "name");
