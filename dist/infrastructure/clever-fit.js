@@ -1,5 +1,7 @@
 // Clever Fit v1 adapter. Parsing/validation only; does not mutate app data.
-const fail = (path, message) => { throw new Error(`Clever Fit ${path}: ${message}`); };
+const fail = (path, message) => {
+  throw new Error(`Clever Fit ${path}: ${message}`);
+};
 const object = (value, path) =>
   value && typeof value === "object" && !Array.isArray(value)
     ? value
@@ -14,8 +16,13 @@ const string = (value, path) =>
     : fail(path, "expected a non-empty name");
 const number = (value, path, nullable = false, integer = false) => {
   if (nullable && value === null) return null;
-  if (typeof value !== "number" || !Number.isFinite(value) || value < 0 ||
-      value > 100000 || (integer && !Number.isInteger(value)))
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value < 0 ||
+    value > 100000 ||
+    (integer && !Number.isInteger(value))
+  )
     fail(path, "expected a non-negative finite number");
   return value;
 };
@@ -30,8 +37,11 @@ const dateOnly = (value, path) => {
 
 export function parseCleverFit(text) {
   let source;
-  try { source = JSON.parse(text); }
-  catch { throw new Error("This Clever Fit file is not valid JSON."); }
+  try {
+    source = JSON.parse(text);
+  } catch {
+    throw new Error("This Clever Fit file is not valid JSON.");
+  }
   const input = object(source, "root");
   if (input.schema_version !== "1.0")
     fail("schema_version", "only Clever Fit schema 1.0 is supported");
@@ -46,7 +56,8 @@ export function parseCleverFit(text) {
       const name = string(session.name, `${path}.name`);
       const exercises = array(session.exercises, `${path}.exercises`, 1000);
       return {
-        date, name,
+        date,
+        name,
         exercises: exercises.map((value, exerciseIndex) => {
           const ep = `${path}.exercises[${exerciseIndex}]`;
           const exercise = object(value, ep);
@@ -62,19 +73,42 @@ export function parseCleverFit(text) {
             sets: sets.map((value, setIndex) => {
               const sp = `${ep}.sets[${setIndex}]`;
               const set = object(value, sp);
-              const setNumber = number(set.set_number, `${sp}.set_number`, false, true);
+              const setNumber = number(
+                set.set_number,
+                `${sp}.set_number`,
+                false,
+                true,
+              );
               if (setNumber < 1 || seen.has(setNumber))
-                fail(`${sp}.set_number`, "set numbers must be positive and unique");
+                fail(
+                  `${sp}.set_number`,
+                  "set numbers must be positive and unique",
+                );
               seen.add(setNumber);
-              if (!("reps" in set) || !("weight_kg" in set) || !("duration_seconds" in set))
+              if (
+                !("reps" in set) ||
+                !("weight_kg" in set) ||
+                !("duration_seconds" in set)
+              )
                 fail(sp, "missing reps, weight_kg or duration_seconds");
               const reps = number(set.reps, `${sp}.reps`, true, true);
               const weightKg = number(set.weight_kg, `${sp}.weight_kg`, true);
-              const durationSeconds = number(set.duration_seconds, `${sp}.duration_seconds`, true);
-              if (reps === null && weightKg === null && durationSeconds === null)
+              const durationSeconds = number(
+                set.duration_seconds,
+                `${sp}.duration_seconds`,
+                true,
+              );
+              if (
+                reps === null &&
+                weightKg === null &&
+                durationSeconds === null
+              )
                 fail(sp, "set has no measured result");
               return {
-                setNumber, reps, weightKg, durationSeconds,
+                setNumber,
+                reps,
+                weightKg,
+                durationSeconds,
               };
             }),
           };

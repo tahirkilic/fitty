@@ -44,11 +44,16 @@ export function validateData(data) {
     if (v.reps !== null) number(v.reps, true);
     if (v.durationSeconds !== undefined && v.durationSeconds !== null)
       number(v.durationSeconds);
-    invariant(v.weight !== undefined && v.reps !== undefined,
-      "Missing set measurements");
-    invariant(v.weight !== null || v.reps !== null ||
-      (v.durationSeconds !== null && v.durationSeconds !== undefined),
-      "Set must contain a measurement");
+    invariant(
+      v.weight !== undefined && v.reps !== undefined,
+      "Missing set measurements",
+    );
+    invariant(
+      v.weight !== null ||
+        v.reps !== null ||
+        (v.durationSeconds !== null && v.durationSeconds !== undefined),
+      "Set must contain a measurement",
+    );
   };
   invariant(object(data), "Invalid data");
   for (const key of ["exercises", "plans", "rotation", "sessions"])
@@ -72,12 +77,15 @@ export function validateData(data) {
       "Invalid machine details",
     );
   };
-  const kind = (e) => invariant(
-    e.kind === undefined || ["strength", "cardio", "isometric"].includes(e.kind),
-    "Invalid exercise type",
-  );
+  const kind = (e) =>
+    invariant(
+      e.kind === undefined ||
+        ["strength", "cardio", "isometric"].includes(e.kind),
+      "Invalid exercise type",
+    );
   const source = (e) => {
-    if (e.importSourceKey !== undefined) str(e.importSourceKey, "import identity");
+    if (e.importSourceKey !== undefined)
+      str(e.importSourceKey, "import identity");
   };
   for (const e of data.exercises) {
     display(e);
@@ -123,10 +131,14 @@ export function validateData(data) {
     number(s.planVersion, true);
     const historical = s.importSource === "clever_fit_json";
     if (historical) {
-      invariant(typeof s.historicalDate === "string" &&
-        /^\\d{4}-\\d{2}-\\d{2}$/.test(s.historicalDate) &&
-        new Date(s.historicalDate + "T00:00:00Z").toISOString().slice(0, 10) === s.historicalDate,
-        "Invalid historical date");
+      invariant(
+        typeof s.historicalDate === "string" &&
+          /^\\d{4}-\\d{2}-\\d{2}$/.test(s.historicalDate) &&
+          new Date(s.historicalDate + "T00:00:00Z")
+            .toISOString()
+            .slice(0, 10) === s.historicalDate,
+        "Invalid historical date",
+      );
       str(s.importSourceKey, "import identity");
     } else date(s.startedAt);
     invariant(
@@ -188,15 +200,25 @@ export function latestSet(data, exerciseId, index) {
   for (const session of sessions)
     for (const item of [...session.items].reverse()) {
       const set = item.sets[index];
-      if (item.exerciseId !== exerciseId || !set?.done || item.skipped) continue;
+      if (item.exerciseId !== exerciseId || !set?.done || item.skipped)
+        continue;
       for (const key of ["weight", "reps", "durationSeconds"]) {
-        if (result[key] === undefined && set[key] !== null && set[key] !== undefined) {
+        if (
+          result[key] === undefined &&
+          set[key] !== null &&
+          set[key] !== undefined
+        ) {
           result[key] = set[key];
-          if (!result.date) result.date = session.historicalDate || session.finishedAt;
+          if (!result.date)
+            result.date = session.historicalDate || session.finishedAt;
         }
       }
-      if (result.weight !== undefined && result.reps !== undefined &&
-          result.durationSeconds !== undefined) return result;
+      if (
+        result.weight !== undefined &&
+        result.reps !== undefined &&
+        result.durationSeconds !== undefined
+      )
+        return result;
     }
   return result.date ? result : null;
 }
@@ -211,7 +233,10 @@ export function sessionItem(item, data) {
         weight: previous?.weight ?? target.weight,
         reps: previous?.reps ?? target.reps,
         ...(target.durationSeconds !== undefined
-          ? { durationSeconds: previous?.durationSeconds ?? target.durationSeconds }
+          ? {
+              durationSeconds:
+                previous?.durationSeconds ?? target.durationSeconds,
+            }
           : {}),
         target: clone(target),
         done: false,

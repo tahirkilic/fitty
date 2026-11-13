@@ -7,7 +7,11 @@ export function exerciseOccurrences(session) {
   return session.exercises.map((exercise) => {
     const occurrence = (seen.get(exercise.name) || 0) + 1;
     seen.set(exercise.name, occurrence);
-    return { exercise, key: exerciseKey(exercise.name, occurrence), occurrence };
+    return {
+      exercise,
+      key: exerciseKey(exercise.name, occurrence),
+      occurrence,
+    };
   });
 }
 
@@ -25,7 +29,10 @@ export function catalogIdentities(sessions) {
           name: exercise.name,
           type: exercise.type,
           occurrence,
-          label: occurrence === 1 ? exercise.name : `${exercise.name} (occurrence ${occurrence})`,
+          label:
+            occurrence === 1
+              ? exercise.name
+              : `${exercise.name} (occurrence ${occurrence})`,
         });
   return [...found.values()];
 }
@@ -34,7 +41,8 @@ export function catalogIdentities(sessions) {
 // The fingerprint detects repeat imports; never used for security/authentication.
 export function sessionFingerprint(session) {
   const serialized = JSON.stringify(session);
-  let a = 2166136261, b = 0x811c9dc5;
+  let a = 2166136261,
+    b = 0x811c9dc5;
   for (let index = 0; index < serialized.length; index++) {
     const ch = serialized.charCodeAt(index);
     a = Math.imul(a ^ ch, 16777619);
@@ -44,13 +52,17 @@ export function sessionFingerprint(session) {
 }
 
 export const sessionDay = (session) =>
-  session.historicalDate || session.finishedAt?.slice(0, 10) || session.startedAt?.slice(0, 10) || "";
+  session.historicalDate ||
+  session.finishedAt?.slice(0, 10) ||
+  session.startedAt?.slice(0, 10) ||
+  "";
 
 export function newestSessions(sessions) {
   const latest = new Map();
   for (const session of sessions) {
     const previous = latest.get(session.name);
-    if (!previous || session.date > previous.date) latest.set(session.name, session);
+    if (!previous || session.date > previous.date)
+      latest.set(session.name, session);
   }
   return latest;
 }
