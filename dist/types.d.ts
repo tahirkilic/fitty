@@ -59,6 +59,7 @@ export interface Session {
   warmupStarted: number | null;
 }
 export interface Data {
+  cleverFitMappings?: Record<string, string>;
   exercises: Machine[];
   plans: Plan[];
   rotation: string[];
