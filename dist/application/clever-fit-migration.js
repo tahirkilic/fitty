@@ -40,7 +40,12 @@ export class CleverFitMigration {
       const id = choices.mappings[identity.key];
       if (id === "new") return "new";
       invariant(
-        data.exercises.some((e) => e.id === id && !e.archived && (e.kind || "strength") === identity.type),
+        data.exercises.some(
+          (e) =>
+            e.id === id &&
+            !e.archived &&
+            (e.kind || "strength") === identity.type,
+        ),
         `The selected machine for ${identity.label} is missing or has a different exercise type.`,
       );
       return id;

@@ -282,7 +282,10 @@ function modal() {
       .map(
         (e) =>
           `<label>${escape(e.label)} · ${escape(e.type)}<select data-field="clever-mapping" data-key="${escape(e.key)}"><option value="new" ${e.mapping === "new" ? "selected" : ""}>Create a new record</option>${vm.data.exercises
-            .filter((machine) => !machine.archived && (machine.kind || "strength") === e.type)
+            .filter(
+              (machine) =>
+                !machine.archived && (machine.kind || "strength") === e.type,
+            )
             .map(
               (machine) =>
                 `<option value="${escape(machine.id)}" ${machine.id === e.mapping ? "selected" : ""}>${escape(machine.name)} ${machine.number ? "· #" + escape(machine.number) : ""}</option>`,
