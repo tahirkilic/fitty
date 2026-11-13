@@ -1,6 +1,6 @@
 # Form — Personal training notebook
 
-First implementation preview, 11 November 2026. English, kilograms, local-only storage. No account database or AI connection. Hosting access may ask for ChatGPT sign-in; training data stays in the browser.
+Implementation preview, updated 13 November 2026. English, kilograms, local-only storage. No account database or AI connection. Hosting access may ask for ChatGPT sign-in; training data stays in the browser.
 
 ## iPhone
 
@@ -13,6 +13,18 @@ First implementation preview, 11 November 2026. English, kilograms, local-only s
 7. Upload an exported JSON file to ChatGPT yourself for analysis.
 
 Use the same website address and Home Screen app. Local data is specific to the browser/device/origin; Safari and an installed app can have different storage on some iOS versions. Back up before moving, uninstalling, or clearing website data. The app does not promise background audio or lock-screen notifications. Timers recover from stored timestamps.
+
+## Clever Fit migration (Iteration 2)
+
+From the installed iPhone Home Screen app, open **Backup → Import from Clever Fit → Choose Clever Fit workout JSON**. Select `workout_sessions_merged.json` in the iPhone **Files** picker. Review the preview, choose the reference workout for each plan (latest is the default), and review each exercise-to-machine mapping. Select `Create a new record` when two machines have similar names but are not the same. Tap **Import exercises, 2 plans and history** to confirm.
+
+The importer adds reusable exercises/devices, the two **editable plans** (`Einheit A`, `Ganzkörper`) reconstructed from their most recent sessions, and every historical workout linked to its plan. It **does not replace existing workouts**, change the plan rotation, or require connectivity. Conflicting existing plan names are not overwritten: an imported one gets `(Clever Fit)` appended. Add imported plans to your visit rotation explicitly from **Plans**.
+
+Source session dates display as `DD.MM.YYYY`; source start/end clock times are unknown and are not fabricated. Unknown weights and repetitions remain blank; cross-trainer and isometric sets retain their duration. Similarly named machine identities are not fuzzy-merged, and a twice-occurring `Butterfly machine` is kept as two separate occurrences. Machine number/settings are not available in Clever Fit export; imported records have blank fields. Imported plan rest times start with an explicitly editable **90-second app default**.
+
+Repeated imports safely skip previously migrated records, and the entire import saves atomically as one local dataset change. Before a first import, **download a backup** from Backup and store it in iPhone Files. Do not import Clever Fit workout JSON using the separate **Restore from a backup** picker; that picker replaces the app's data. The normal JSON backup retains all migrated plans, history, source mappings and optional values.
+
+The personal Clever Fit JSON must **not** be checked into the repository. Run real-fixture regression locally with `CLEVER_FIT_FIXTURE_PATH=/path/to/workout_sessions_merged.json npm test`. For the source used in this iteration, verify **2 plans, 47 sessions, 539 exercise occurrences and 1,557 recorded sets**. The default empty-catalog import creates **28 distinct catalog records** from 27 strings because of one repeated Butterfly identity; reusing existing catalog records reduces the number created.
 
 ## Development
 
