@@ -1,12 +1,15 @@
-const CACHE = "form-shell-v2";
+const CACHE = "form-shell-v3";
 const FILES = [
   "./",
   "./index.html",
   "./styles.css",
   "./main.js",
   "./domain/model.js",
+  "./domain/clever-fit.js",
   "./application/training.js",
+  "./application/clever-fit-migration.js",
   "./infrastructure/storage.js",
+  "./infrastructure/clever-fit.js",
   "./presentation/view-model.js",
   "./manifest.webmanifest",
   "./icon.png",
@@ -16,7 +19,11 @@ self.addEventListener("install", (event) =>
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES))),
 );
 self.addEventListener("activate", (event) =>
-  event.waitUntil(self.clients.claim()),
+  event.waitUntil((async () => {
+    const names = await caches.keys();
+    await Promise.all(names.filter((name) => name.startsWith("form-shell-") && name !== CACHE).map((name) => caches.delete(name)));
+    await self.clients.claim();
+  })()),
 );
 self.addEventListener("fetch", (event) => {
   if (
