@@ -113,11 +113,15 @@ for (const [engine, type] of [
       await page.getByRole("button", { name: "Replace all data" }).click();
       await page.getByText("Backup restored successfully.").waitFor();
       await page.evaluate(() => navigator.serviceWorker.ready);
-      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
       await context.setOffline(true);
       const offlinePage = await context.newPage();
       await offlinePage.goto(url);
-      await offlinePage.getByRole("button", { name: "Resume workout ↗" }).click();
+      await offlinePage
+        .getByRole("button", { name: "Resume workout ↗" })
+        .click();
       assert.equal(
         await offlinePage
           .getByLabel("Test press set 1 weight", { exact: true })
@@ -269,11 +273,15 @@ for (const [engine, type] of [
         .getByText(/0 machines, 0 plans, 0 workouts and 0 sets/)
         .waitFor();
       await page.evaluate(() => navigator.serviceWorker.ready);
-      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
       await context.setOffline(true);
       const offlinePage = await context.newPage();
       await offlinePage.goto(url);
-      await offlinePage.getByRole("button", { name: "History", exact: true }).click();
+      await offlinePage
+        .getByRole("button", { name: "History", exact: true })
+        .click();
       await offlinePage.getByText("09.11.2026").waitFor();
       assert(
         await offlinePage.evaluate(
