@@ -1,9 +1,13 @@
 export interface Values {
-  weight: number;
-  reps: number;
+  weight: number | null;
+  reps: number | null;
+  durationSeconds?: number | null;
 }
+export type ExerciseKind = "strength" | "cardio" | "isometric";
 export interface Machine {
   id: string;
+  kind?: ExerciseKind;
+  importSourceKey?: string;
   name: string;
   number: string;
   settings: string;
@@ -11,6 +15,7 @@ export interface Machine {
 }
 export interface PlanItem {
   id: string;
+  kind?: ExerciseKind;
   exerciseId: string;
   name: string;
   number: string;
@@ -28,6 +33,7 @@ export interface SessionItem extends Omit<PlanItem, "sets"> {
 }
 export interface Plan {
   id: string;
+  importSourceKey?: string;
   version: number;
   name: string;
   rest: number;
@@ -36,6 +42,9 @@ export interface Plan {
 }
 export interface Session {
   id: string;
+  historicalDate?: string;
+  importSource?: "clever_fit_json";
+  importSourceKey?: string;
   name: string;
   planId: string;
   planVersion: number;
@@ -43,7 +52,7 @@ export interface Session {
   base: PlanItem[];
   items: SessionItem[];
   status: "active" | "finished";
-  startedAt: string;
+  startedAt?: string;
   finishedAt?: string;
   restUntil: number | null;
   warmup: number;
