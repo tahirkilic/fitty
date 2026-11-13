@@ -113,18 +113,19 @@ for (const [engine, type] of [
       await page.getByRole("button", { name: "Replace all data" }).click();
       await page.getByText("Backup restored successfully.").waitFor();
       await page.evaluate(() => navigator.serviceWorker.ready);
-      await page.reload();
+      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
       await context.setOffline(true);
-      await page.reload();
-      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      const offlinePage = await context.newPage();
+      await offlinePage.goto(url);
+      await offlinePage.getByRole("button", { name: "Resume workout ↗" }).click();
       assert.equal(
-        await page
+        await offlinePage
           .getByLabel("Test press set 1 weight", { exact: true })
           .inputValue(),
         "40.5",
       );
       assert(
-        await page.evaluate(
+        await offlinePage.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       );
@@ -258,6 +259,7 @@ for (const [engine, type] of [
       await page.locator("#import-file").setInputFiles(backupFile);
       await page.getByRole("button", { name: "Replace all data" }).click();
       await page.getByText("Backup restored successfully.").waitFor();
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
       await page.locator("#clever-file").setInputFiles(file);
       await page.getByText("2 already imported").waitFor();
       await page
@@ -267,12 +269,14 @@ for (const [engine, type] of [
         .getByText(/0 machines, 0 plans, 0 workouts and 0 sets/)
         .waitFor();
       await page.evaluate(() => navigator.serviceWorker.ready);
+      await page.waitForFunction(() => navigator.serviceWorker.controller !== null);
       await context.setOffline(true);
-      await page.reload();
-      await page.getByRole("button", { name: "History", exact: true }).click();
-      await page.getByText("09.11.2026").waitFor();
+      const offlinePage = await context.newPage();
+      await offlinePage.goto(url);
+      await offlinePage.getByRole("button", { name: "History", exact: true }).click();
+      await offlinePage.getByText("09.11.2026").waitFor();
       assert(
-        await page.evaluate(
+        await offlinePage.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       );
