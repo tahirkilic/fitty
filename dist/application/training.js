@@ -91,14 +91,19 @@ export class Training {
     this.transact((d) => {
       const p = d.plans.find((p) => p.id === id);
       invariant(p && p.items.length, "Add exercises to this plan first.");
+      const items = p.items.map((item) => ({
+        ...item,
+        number: d.exercises.find((exercise) => exercise.id === item.exerciseId)
+          .number,
+      }));
       d.active = {
         id: this.ids(),
         name: p.name,
         planId: p.id,
         planVersion: p.version,
         rest: p.rest,
-        base: clone(p.items),
-        items: p.items.map((i) => sessionItem(i, d)),
+        base: clone(items),
+        items: items.map((i) => sessionItem(i, d)),
         status: "active",
         startedAt: this.clock.iso(),
         restUntil: null,

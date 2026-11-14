@@ -16,6 +16,7 @@ Fitty is a functional preview, version 0.1.0. The core workout features and Clev
 - Plan creation, editing, duplication, archiving, per-set targets, and visit-based rotation.
 - Workout logging with automatic local saves, reload recovery, and previous completed values across plans.
 - Rest timers, optional cross-trainer warm-up, and session-only reordering, skipping, adding, removing, or replacing exercises.
+- New workouts use the current exercise catalog machine numbers. Active and completed workouts retain their starting numbers.
 - Partial completion, selective plan updates, and history that preserves exercise names and settings. Expanded sessions show one row per set with aligned weights/reps or durations and explicit completion status.
 - Versioned JSON backup/restore and additive Clever Fit history import.
 

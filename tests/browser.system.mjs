@@ -63,9 +63,26 @@ for (const [engine, type] of [
         .getByRole("button", { name: "Duplicate", exact: true })
         .click();
       await page
+        .getByRole("button", { name: "Exercises", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Edit", exact: true }).click();
+      await page.locator("#exercise-number").fill("27");
+      await page.getByRole("button", { name: "Save machine" }).click();
+      await page.reload();
+      await page.getByRole("button", { name: "Plans", exact: true }).click();
+      await page
         .getByRole("button", { name: "Start ↗", exact: true })
         .first()
         .click();
+      await page.getByText("Machine 27", { exact: true }).waitFor();
+      await page
+        .getByRole("button", { name: "Exercises", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Edit", exact: true }).click();
+      await page.locator("#exercise-number").fill("28");
+      await page.getByRole("button", { name: "Save machine" }).click();
+      await page.getByRole("button", { name: "Workout", exact: true }).click();
+      await page.getByText("Machine 27", { exact: true }).waitFor();
       await page
         .getByLabel("Test press set 1 weight", { exact: true })
         .fill("40.5");
@@ -98,6 +115,9 @@ for (const [engine, type] of [
       await page.locator('[name="plan-change"]').check();
       await page.getByRole("button", { name: "Save finished workout" }).click();
       await page.locator("summary").first().click();
+      await page
+        .getByRole("heading", { name: "Test press · #27", exact: true })
+        .waitFor();
       const resultsTable = page.getByRole("table", {
         name: "Test press set results",
       });
@@ -135,6 +155,7 @@ for (const [engine, type] of [
         .getByRole("button", { name: "Start ↗", exact: true })
         .last()
         .click();
+      await page.getByText("Machine 28", { exact: true }).waitFor();
       assert.equal(
         await page
           .getByLabel("Test press set 1 weight", { exact: true })
@@ -177,7 +198,7 @@ for (const [engine, type] of [
         // Keep the browser genuinely offline and verify cache plus UI writes.
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v5");
+            const cache = await caches.open("fitty-shell-v6");
             return Boolean(await cache.match("./main.js"));
           }),
         );
@@ -390,7 +411,7 @@ for (const [engine, type] of [
       if (engine === "webkit") {
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v5");
+            const cache = await caches.open("fitty-shell-v6");
             return Boolean(await cache.match("./main.js"));
           }),
         );

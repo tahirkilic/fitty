@@ -1,4 +1,4 @@
-const CACHE = "fitty-shell-v5";
+const CACHE = "fitty-shell-v6";
 const FILES = [
   "./",
   "./index.html",

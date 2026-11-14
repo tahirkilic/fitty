@@ -188,3 +188,34 @@ test("F07 regression: completing a skipped exercise returns it to training", () 
   app.finish([]);
   assert.equal(app.data.sessions[0].items[0].sets[0].done, true);
 });
+
+test("F02/F04/F09: new workouts use current catalog numbers and preserve existing snapshots", () => {
+  const { app, reopen } = setup();
+  const { a, b, exercise } = seed(app);
+  const plan = app.data.plans.find((p) => p.id === b);
+  app.plan({ items: plan.items.map((item) => ({ ...item, number: "" })) }, b);
+  app.start(a);
+  app.complete(app.data.active.items[0].id, 0);
+  app.finish([]);
+  const history = structuredClone(app.data.sessions);
+  const plans = structuredClone(app.data.plans);
+  app.exercise({ number: "27" }, exercise);
+  let restored = reopen();
+  restored.start(b);
+  assert.equal(restored.data.active.items[0].number, "27");
+  assert.equal(restored.data.active.base[0].number, "27");
+  assert.deepEqual(restored.changes(), []);
+  assert.deepEqual(restored.data.plans, plans);
+  const active = structuredClone(restored.data.active);
+  restored.exercise({ number: "" }, exercise);
+  restored = reopen();
+  assert.deepEqual(restored.data.active, active);
+  assert.deepEqual(restored.data.sessions, history);
+  restored.finish([]);
+  assert.equal(restored.data.sessions[1].items[0].number, "27");
+  restored.start(a);
+  assert.equal(restored.data.active.items[0].number, "");
+  assert.deepEqual(restored.changes(), []);
+  assert.deepEqual(restored.data.plans, plans);
+  assert.equal(restored.data.sessions[0].items[0].number, "12");
+});

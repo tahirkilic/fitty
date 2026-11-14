@@ -230,3 +230,9 @@ Status: first functional preview implemented; release verification remains open.
 - F09 (depends on F08): expanded sessions group results by exercise, with one numbered table row per set, aligned weight/reps or duration columns, explicit completed/unfinished labels, and a separate skipped-exercise label. Historical snapshots and persistence are unchanged.
 - Regression mapping: `tests/browser.system.mjs` checks recorded decimal values, unfinished sets, vertical row placement and no horizontal overflow at 320/390px in Chromium/WebKit; the imported-history flow covers duration and missing weight values.
 - Validation: 21 unit/integration tests, syntax/architecture checks, TypeScript, ESLint and formatting passed. New browser regressions remain unrun locally because the managed preview relay is unavailable; real iPhone validation remains open.
+
+## Current machine numbers in new workouts · 14 November 2026
+
+- F02/F04/F09: starting a workout resolves each machine number from the catalog by exercise ID, including cleared numbers and existing/imported plans. The session baseline uses the same number, avoiding false plan-update suggestions. Existing plans, active sessions, history, settings, targets and previous-result prefilling retain their behavior.
+- Regression mapping: `tests/integration.test.js` covers persistence/reopening, another plan, cleared numbers, immutable active/history snapshots and no unintended plan changes. `tests/browser.system.mjs` covers catalog edits after plan creation, a new workout, an edit during an active workout, history and the following workout in Chromium/WebKit.
+- Local validation: regression failed with the old behavior, then all 22 unit/integration tests and syntax/architecture, TypeScript, ESLint and formatting checks passed with the fix. Browser validation runs in GitHub CI; physical iPhone verification remains open.

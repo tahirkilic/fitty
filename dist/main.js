@@ -596,7 +596,7 @@ if (vm) {
       .then(async (registration) => {
         await navigator.serviceWorker.ready;
         const check = async () => {
-          offlineReady = await caches.has("fitty-shell-v5");
+          offlineReady = await caches.has("fitty-shell-v6");
           const status = document.getElementById("offline-state");
           if (status)
             status.textContent = offlineReady
