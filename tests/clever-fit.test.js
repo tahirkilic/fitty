@@ -245,6 +245,121 @@ test("CF09: migration metadata survives export/restore and remains idempotent", 
   assert.deepEqual(restoreTarget.data, app.data);
 });
 
+test("CF10: 47-session/1,557-set synthetic full-volume regression", () => {
+  // A non-personal dataset matching the source volume checks the real importer
+  // without checking private workout history into source control.
+  const names = [
+    "Butterfly machine",
+    "Crosstrainer",
+    "Low plank",
+    ...Array.from({ length: 24 }, (_, index) => `Machine ${index + 1}`),
+  ];
+  const workouts = [];
+  let occurrence = 0;
+  for (let visit = 0; visit < 47; visit++) {
+    const day = new Date(Date.UTC(2026, 3, 27 + visit))
+      .toISOString()
+      .slice(0, 10);
+    const exercises = [];
+    for (let index = 0; index < (visit < 22 ? 12 : 11); index++) {
+      const name =
+        visit === 0 && index < 2
+          ? "Butterfly machine"
+          : names[(visit * 7 + index) % names.length];
+      const type =
+        name === "Crosstrainer"
+          ? "cardio"
+          : name === "Low plank"
+            ? "isometric"
+            : "strength";
+      const totalSets = occurrence < 479 ? 3 : 2;
+      exercises.push({
+        name,
+        type,
+        sets: Array.from({ length: totalSets }, (_, setIndex) => ({
+          set_number: setIndex + 1,
+          reps: type === "strength" ? 10 + setIndex : null,
+          weight_kg: type !== "strength" || name === "Machine 1" ? null : 20.5,
+          duration_seconds:
+            type === "strength" ? null : type === "cardio" ? 600 : 45,
+        })),
+      });
+      occurrence++;
+    }
+    workouts.push({
+      date: day,
+      name: visit % 2 === 0 ? "Einheit A" : "Ganzkörper",
+      exercises,
+    });
+  }
+  const input = parseCleverFit(
+    JSON.stringify({ schema_version: "1.0", workout_sessions: workouts }),
+  );
+  const { app, reopen, clock } = setup();
+  const importer = migration(app);
+  const preview = importer.preview(input);
+  assert.equal(preview.totalSessions, 47);
+  assert.equal(preview.exerciseOccurrences, 539);
+  assert.equal(preview.sets, 1557);
+  assert.equal(preview.identities.length, 28);
+  const created = importer.import(input);
+  assert.deepEqual(created, {
+    plans: 2,
+    exercises: 28,
+    sessions: 47,
+    sets: 1557,
+    skippedSessions: 0,
+  });
+  assert.equal(app.data.plans.length, 2);
+  assert.equal(app.data.exercises.length, 28);
+  assert.equal(app.data.sessions.length, 47);
+  assert.equal(
+    app.data.sessions.reduce(
+      (total, session) =>
+        total +
+        session.items.reduce((count, item) => count + item.sets.length, 0),
+      0,
+    ),
+    1557,
+  );
+  for (let visit = 0; visit < workouts.length; visit++) {
+    const imported = app.data.sessions[visit];
+    const original = workouts[visit];
+    assert.equal(imported.historicalDate, original.date);
+    assert.equal(imported.name, original.name);
+    assert.equal(imported.items.length, original.exercises.length);
+    assert.equal(
+      app.data.plans.find((plan) => plan.id === imported.planId).name,
+      original.name,
+    );
+    for (let index = 0; index < original.exercises.length; index++) {
+      const actual = imported.items[index];
+      const expected = original.exercises[index];
+      assert.equal(actual.name, expected.name);
+      assert.equal(actual.kind, expected.type);
+      assert.equal(actual.sets.length, expected.sets.length);
+      for (let setIndex = 0; setIndex < expected.sets.length; setIndex++) {
+        const value = actual.sets[setIndex];
+        const source = expected.sets[setIndex];
+        assert.equal(value.weight, source.weight_kg);
+        assert.equal(value.reps, source.reps);
+        assert.equal(value.durationSeconds, source.duration_seconds);
+      }
+    }
+  }
+  assert.deepEqual(reopen().data, app.data);
+  const backup = encodeBackup(app.data, clock.iso());
+  assert.deepEqual(decodeBackup(backup), app.data);
+  const retry = importer.import(input);
+  assert.deepEqual(retry, {
+    plans: 0,
+    exercises: 0,
+    sessions: 0,
+    sets: 0,
+    skippedSessions: 47,
+  });
+});
+
 // The real personal dataset is intentionally not committed to source control.
 // Point CLEVER_FIT_FIXTURE_PATH at the supplied file for the exact full-dataset regression.
 if (process.env.CLEVER_FIT_FIXTURE_PATH)
@@ -271,5 +386,68 @@ if (process.env.CLEVER_FIT_FIXTURE_PATH)
       ),
       1557,
     );
+    assert.equal(app.data.exercises.length, 28);
+    assert.equal(app.data.plans.length, 2);
+    assert.deepEqual(
+      new Set(app.data.plans.map((plan) => plan.name)),
+      new Set(["Einheit A", "Ganzkörper"]),
+    );
+    for (const sourcePlan of ["Einheit A", "Ganzkörper"]) {
+      const latest = data.sessions
+        .filter((session) => session.name === sourcePlan)
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      const plan = app.data.plans.find((entry) => entry.name === sourcePlan);
+      assert.equal(plan.items.length, latest.exercises.length);
+      for (let index = 0; index < latest.exercises.length; index++) {
+        assert.equal(plan.items[index].name, latest.exercises[index].name);
+        assert.equal(
+          plan.items[index].sets.length,
+          latest.exercises[index].sets.length,
+        );
+      }
+    }
+    for (let index = 0; index < data.sessions.length; index++) {
+      const sourceSession = data.sessions[index];
+      const actual = app.data.sessions[index];
+      assert.equal(actual.historicalDate, sourceSession.date);
+      assert.equal(actual.name, sourceSession.name);
+      assert.equal(actual.startedAt, undefined);
+      assert.equal(actual.finishedAt, undefined);
+      assert.equal(
+        app.data.plans.find((plan) => plan.id === actual.planId).name,
+        sourceSession.name,
+      );
+      assert.equal(actual.items.length, sourceSession.exercises.length);
+      for (
+        let exerciseIndex = 0;
+        exerciseIndex < sourceSession.exercises.length;
+        exerciseIndex++
+      ) {
+        const sourceExercise = sourceSession.exercises[exerciseIndex];
+        const recorded = actual.items[exerciseIndex];
+        assert.equal(recorded.name, sourceExercise.name);
+        assert.equal(recorded.kind, sourceExercise.type);
+        assert.equal(recorded.sets.length, sourceExercise.sets.length);
+        for (
+          let setIndex = 0;
+          setIndex < sourceExercise.sets.length;
+          setIndex++
+        ) {
+          const expected = sourceExercise.sets[setIndex];
+          const logged = recorded.sets[setIndex];
+          assert.equal(logged.weight, expected.weightKg);
+          assert.equal(logged.reps, expected.reps);
+          assert.equal(logged.durationSeconds, expected.durationSeconds);
+          assert.equal(logged.done, true);
+        }
+      }
+    }
+    const roundTrip = decodeBackup(
+      encodeBackup(app.data, new Date().toISOString()),
+    );
+    assert.deepEqual(roundTrip, app.data);
     assert.equal(migration(app).import(data).sessions, 0);
+    assert.equal(app.data.sessions.length, 47);
+    assert.equal(app.data.plans.length, 2);
+    assert.equal(app.data.exercises.length, 28);
   });

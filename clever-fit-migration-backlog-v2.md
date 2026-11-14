@@ -1,6 +1,6 @@
 # Iteration 2 — Clever Fit data migration
 
-Status: **Implemented on feature branch, verification in progress**. Updated 13 November 2026.
+Status: **Implemented and merged in PR #1; automated verification follow-up in PR #2; physical-iPhone acceptance outstanding**. Updated 14 November 2026.
 Source: `workout_sessions_merged.json` (`schema_version: "1.0"`).
 Requirements: migrate exercises/devices, create the editable plans **Einheit A** and **Ganzkörper**, and preserve every historical workout and its recorded values. `AGENTS.md` is mandatory.
 
@@ -35,7 +35,7 @@ The personal source file is supplied to the app by the user through the browser'
 - **CF07 — Two editable plans from latest workout (P0): IMPLEMENTED.** Mandatory creation of both plans, associated with source history and reusable catalog identities; original plan name conflicts get a `(Clever Fit)` suffix instead of overwriting the existing plan. Timed exercises supported in the plan editor.
 - **CF08 — Import result/error handling (P1): IMPLEMENTED.** Displays created and skipped counts and actionable errors; import preview can be cancelled. More detailed audit log can be a later enhancement.
 - **CF09 — Backup compatibility (P0): IMPLEMENTED.** Existing versioned export/restore preserves added optional historical fields, plan links and provenance; schema version remains 1 for backward compatibility.
-- **CF10 — Test coverage (P0): IMPLEMENTED, CI VERIFICATION PENDING.** Unit/integration tests for validation, identity, transactional rollback, repeated import, backup round-trip; Chromium and WebKit browser scenario for file selection, preview, plan, history, backup and offline use. An additional full-dataset regression is gated by private local `CLEVER_FIT_FIXTURE_PATH`. Real iPhone manual device testing is still required.
+- **CF10 — Test coverage (P0): AUTOMATED CHECKS PASS; MANUAL DEVICE VALIDATION PENDING.** Unit/integration tests for validation, identity, transactional rollback, repeated import, backup round-trip; Chromium and WebKit browser scenario for file selection, preview, plan, history, backup and offline use. An additional full-dataset regression is gated by private local `CLEVER_FIT_FIXTURE_PATH`. Real iPhone manual device testing is still required.
 
 ## Implementation files
 
@@ -60,6 +60,18 @@ The personal source file is supplied to the app by the user through the browser'
 | Versioned backup round-trip                                  | `tests/clever-fit.test.js`: CF09                                         |
 | File picker, UI preview, plans/history, offline, WebKit      | `tests/browser.system.mjs`: Clever Fit                                   |
 | 47 sessions, 539 occurrences, 1,557 sets, 28 identities      | `CLEVER_FIT_FIXTURE_PATH=/path/to/workout_sessions_merged.json npm test` |
+
+## Iteration 2 verification follow-up (14 November 2026)
+
+The migration implementation is already merged into `main` from [PR #1](https://github.com/tahirkilic/fitty/pull/1). [PR #2](https://github.com/tahirkilic/fitty/pull/2) adds a reliable WebKit offline regression strategy and full-volume tests; it is a separate change that must pass CI and be merged independently.
+
+**Automated checks:** GitHub Actions [successful run #43546688555](https://github.com/tahirkilic/fitty/actions/runs/43546688555) passed formatting, lint, type checks, architecture/syntax checks, unit and integration tests, and the full Chromium + WebKit browser system suite. The synthetic 47-session/539-occurrence/1,557-set dataset is tested through the actual parser and migration use case with detailed value checks, backup round-trip, and re-import idempotence.
+
+**Actual personal source file:** The supplied `workout_sessions_merged.json` passed an independent private structural audit: 47 sessions, 539 exercise occurrences, 1,557 sets, 27 name strings / 28 distinct machine-identity slots, 64 unknown weights and 43 unknown repetitions. No personal workout file was pushed to GitHub. **The actual full file has not been executed through the Fitty importer in the current environment**; a gated exhaustive integration test is available for a local checkout via `CLEVER_FIT_FIXTURE_PATH`.
+
+**WebKit limitation:** Playwright's Linux WebKit emulator reports an internal error on offline navigation and fails offline cached-script fetches. The revised system suite blocks outgoing requests during WebKit file import, then tests existing-page app operations with its browser context offline. Chromium covers a full offline import plus fresh offline startup. **Real iPhone Home Screen offline startup is still unverified.**
+
+See [VERIFICATION-ITERATION-2.md](VERIFICATION-ITERATION-2.md) for the audit, exact verification boundaries, and ten-step physical iPhone checklist. CF01–CF09 implementation and their automated tests are complete; CF10's physical-device acceptance gate and real-file in-app import confirmation remain open. These are **not** reasons to rewrite the migration code without evidence, but they prevent labeling the release fully verified.
 
 ## Final release gate
 
