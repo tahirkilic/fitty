@@ -1,4 +1,4 @@
-name: Fitness App verification
+name: Fitty verification
 on:
   push:
     branches: [main, 'fix/**']

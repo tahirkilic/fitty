@@ -1,4 +1,4 @@
-const CACHE = "form-shell-v3";
+const CACHE = "fitty-shell-v4";
 const FILES = [
   "./",
   "./index.html",
@@ -24,7 +24,12 @@ self.addEventListener("activate", (event) =>
       const names = await caches.keys();
       await Promise.all(
         names
-          .filter((name) => name.startsWith("form-shell-") && name !== CACHE)
+          .filter(
+            (name) =>
+              (name.startsWith("form-shell-") ||
+                name.startsWith("fitty-shell-")) &&
+              name !== CACHE,
+          )
           .map((name) => caches.delete(name)),
       );
       await self.clients.claim();

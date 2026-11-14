@@ -23,6 +23,24 @@ for (const [engine, type] of [
     const page = await context.newPage();
     try {
       await page.goto(url);
+      assert.equal(await page.title(), "Fitty — Training notebook");
+      await page
+        .locator(".brand")
+        .getByText("Fitty", { exact: false })
+        .waitFor();
+      assert.equal(
+        await page
+          .locator('meta[name="apple-mobile-web-app-title"]')
+          .getAttribute("content"),
+        "Fitty",
+      );
+      const manifest = await page.evaluate(async () =>
+        (
+          await fetch(document.querySelector('link[rel="manifest"]').href)
+        ).json(),
+      );
+      assert.equal(manifest.name, "Fitty");
+      assert.equal(manifest.short_name, "Fitty");
       await page
         .getByRole("button", { name: "Exercises", exact: true })
         .click();
@@ -102,6 +120,10 @@ for (const [engine, type] of [
         .getByRole("button", { name: "Download JSON backup ↗" })
         .click();
       const file = await downloaded;
+      assert.match(
+        file.suggestedFilename(),
+        /^fitty-backup-\d{4}-\d{2}-\d{2}\.json$/,
+      );
       const path = await file.path();
       await page.locator("#import-file").setInputFiles({
         name: "bad.json",
@@ -122,7 +144,7 @@ for (const [engine, type] of [
         // Keep the browser genuinely offline and verify cache plus UI writes.
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("form-shell-v3");
+            const cache = await caches.open("fitty-shell-v4");
             return Boolean(await cache.match("./main.js"));
           }),
         );
@@ -329,7 +351,7 @@ for (const [engine, type] of [
       if (engine === "webkit") {
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("form-shell-v3");
+            const cache = await caches.open("fitty-shell-v4");
             return Boolean(await cache.match("./main.js"));
           }),
         );

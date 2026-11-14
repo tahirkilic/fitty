@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Form — Training notebook",
-  "short_name": "Form",
+  "name": "Fitty",
+  "short_name": "Fitty",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

@@ -46,7 +46,7 @@ try {
   document.getElementById("recover").onclick = () =>
     download(
       localStorage.getItem("form.fitness.v1") || "{}",
-      "fitness-recovery.json",
+      "fitty-recovery.json",
     );
 }
 const button = (text, action, arg = "", cls = "") =>
@@ -64,7 +64,7 @@ function download(content, name) {
 function exportData() {
   download(
     encodeBackup(vm.data, clock.iso()),
-    `form-backup-${clock.iso().slice(0, 10)}.json`,
+    `fitty-backup-${clock.iso().slice(0, 10)}.json`,
   );
 }
 function heading(title, description, action = "") {
@@ -306,7 +306,7 @@ function render() {
   if (!vm) return;
   const content = { home, plans, exercises: catalog, workout, history, backup };
   const m = modal();
-  root.innerHTML = `<main class="shell"><header class="top"><div class="brand"><span>ƒ</span>form<span style="background:transparent;font-size:12px;font-weight:400;letter-spacing:0">/ training</span></div><span class="status"><span class="dot"></span><span id="offline-state">${offlineReady ? "Offline ready" : "Local notebook"}</span></span></header>${vm.error ? `<div role="alert" class="message error">${escape(vm.error)}</div>` : ""}${vm.notice ? `<div role="status" class="message">${escape(vm.notice)}</div>` : ""}${content[vm.tab]()}</main><nav aria-label="Main navigation" class="nav">${[
+  root.innerHTML = `<main class="shell"><header class="top"><div class="brand"><span>ƒ</span>Fitty<span style="background:transparent;font-size:12px;font-weight:400;letter-spacing:0">/ training</span></div><span class="status"><span class="dot"></span><span id="offline-state">${offlineReady ? "Offline ready" : "Local notebook"}</span></span></header>${vm.error ? `<div role="alert" class="message error">${escape(vm.error)}</div>` : ""}${vm.notice ? `<div role="status" class="message">${escape(vm.notice)}</div>` : ""}${content[vm.tab]()}</main><nav aria-label="Main navigation" class="nav">${[
     ["home", "Home"],
     ["plans", "Plans"],
     ["exercises", "Exercises"],
@@ -584,7 +584,7 @@ if (vm) {
       .then(async (registration) => {
         await navigator.serviceWorker.ready;
         const check = async () => {
-          offlineReady = await caches.has("form-shell-v3");
+          offlineReady = await caches.has("fitty-shell-v4");
           const status = document.getElementById("offline-state");
           if (status)
             status.textContent = offlineReady

@@ -1,6 +1,6 @@
-# Fitness App development instructions
+# Fitty development instructions
 
-These rules apply to all Fitness App implementation, refactoring, and bug fixes. Treat them as mandatory acceptance criteria alongside the feature backlog. Keep this file at the repository root when development starts.
+These rules apply to all Fitty implementation, refactoring, and bug fixes. Treat them as mandatory acceptance criteria alongside the feature backlog. Keep this file at the repository root when development starts.
 
 ## Architecture
 

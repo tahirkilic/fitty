@@ -1,4 +1,4 @@
-# Personal fitness tracker — requirements and development backlog
+# Fitty — requirements and development backlog
 
 Version: 1.0 · 11 November 2026 · Status: ready for implementation with proposed defaults below.
 
@@ -219,3 +219,8 @@ Status: first functional preview implemented; release verification remains open.
 - Automated validation: 13 unit/integration tests passing; syntax/boundary/offline-asset checks, TypeScript inner-layer checks, ESLint and Prettier passing. Browser system suite added for Chromium and WebKit, not run in this workspace because the preview relay is unavailable.
 - F11 remains open: real iPhone installation/offline/lifecycle/file flows, full browser verification, release acceptance.
 - Defaults used: English, kg, managed private static hosting, localStorage single-value transaction adapter. No cloud training database, sync, or automatic ChatGPT connection.
+
+## Fitty naming update · 14 November 2026
+
+- F01/F10: interface, browser title, Home Screen metadata, package name, backup and recovery filenames use Fitty. Offline shell refreshed; original storage key and backup schema retained to preserve existing data.
+- Regression coverage: Chromium/WebKit system workflow asserts app and install names, backup filename, and loading existing data under the original storage key.

@@ -1,6 +1,7 @@
 import { emptyData, validateData } from "../domain/model.js";
 export class LocalRepository {
   /** @param {Storage} storage */
+  // Keep the original key so renaming the app preserves existing workouts.
   constructor(storage, key = "form.fitness.v1") {
     this.storage = storage;
     this.key = key;
