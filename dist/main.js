@@ -189,7 +189,7 @@ function workout() {
     s.items
       .map(
         (item, index) =>
-          `<details class="card workout-exercise" id="item-${item.id}" data-exercise-id="${escape(item.id)}" ${vm.isExerciseOpen(item.id) ? "open" : ""}><summary class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p><p class="muted">${item.sets.filter((set) => set.done).length} of ${item.sets.length} sets completed</p></div><span class="exercise-chevron" aria-hidden="true"></span></summary><div class="exercise-body">${button(item.skipped ? "Return" : "Skip", "skip", item.id, "small ghost")}${setRows(item)}<div class="row wrap" style="margin-top:18px">${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Replace", "replace", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}${button("Edit targets", "targets", item.id, "ghost")}</div></div></details>`,
+          `<details class="card workout-exercise" id="item-${item.id}" data-exercise-id="${escape(item.id)}" ${vm.isExerciseOpen(item.id) ? "open" : ""}><summary class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p><p class="muted">${item.sets.filter((set) => set.done).length} of ${item.sets.length} sets completed</p></div><span class="exercise-chevron" aria-hidden="true"></span></summary><div class="exercise-body">${button(item.skipped ? "Return" : "Skip", "skip", item.id, "small ghost")}${setRows(item)}<div class="row wrap" style="margin-top:18px">${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Replace", "replace", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}</div></div></details>`,
       )
       .join("") +
     `<section class="card"><label for="session-add">Add an exercise for today</label><select id="session-add" data-action="session-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select></section><div class="row between">${button("Discard workout", "discard", "", "danger")}${button("Review & finish →", "review", "", "dark")}</div>`
@@ -249,8 +249,7 @@ function planModal() {
   return `<h2>${p.id ? "Edit plan" : "Create a plan"}</h2><label for="plan-name">Plan name</label><input id="plan-name" value="${escape(p.name)}" data-field="plan-name" placeholder="e.g. Upper body A"><label for="plan-rest">Rest between sets (seconds, 0 to disable)</label><input id="plan-rest" type="number" min="0" step="1" value="${p.rest}" data-field="plan-rest">${p.items.map((i, index) => `<section class="card" style="margin-top:18px"><div class="row between"><h3>${escape(i.name)}</h3><div class="row">${button("↑", "plan-up", i.id, "small ghost")}${button("×", "plan-remove", i.id, "small ghost")}</div></div>${setRows(i, true)}<div style="margin-top:12px">${button("+ Set", "plan-add-set", i.id, "ghost")}</div></section>`).join("")}<label for="plan-add">Add an exercise</label><select id="plan-add" data-action="plan-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select>${!vm.data.exercises.some((e) => !e.archived) ? '<p class="muted">Add machines in Exercises first.</p>' : ""}<footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Save plan", "save-plan", "", "dark")}</footer>`;
 }
 let exerciseEditor = null,
-  replaceId = null,
-  targetId = null;
+  replaceId = null;
 function modal() {
   if (vm.editor) return planModal();
   if (exerciseEditor) {
@@ -259,17 +258,6 @@ function modal() {
   }
   if (replaceId)
     return `<h2>Replace exercise for today</h2><p class="muted">Recorded sets must be kept under their original machine.</p><label for="replacement">Replacement machine</label><select id="replacement">${exerciseOptions()}</select><footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Replace", "confirm-replace", replaceId, "dark")}</footer>`;
-  if (targetId) {
-    const i = vm.data.active.items.find((i) => i.id === targetId);
-    const timed = i.kind === "cardio" || i.kind === "isometric";
-    return `<h2>Plan targets · ${escape(i.name)}</h2><p class="muted">Edit prescriptions separately from actual results. Review them when finishing to apply to your plan.</p>${i.sets
-      .map((set, n) =>
-        timed
-          ? `<label>Set ${n + 1} · seconds<input type="number" min="0" step="1" aria-label="Target duration ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="durationSeconds" value="${set.target.durationSeconds ?? ""}"></label>`
-          : `<label>Set ${n + 1} · kg / reps</label><div class="two"><input type="number" min="0" step="0.1" aria-label="Target weight ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="weight" value="${set.target.weight ?? ""}"><input type="number" min="0" step="1" aria-label="Target repetitions ${n + 1}" data-field="target" data-id="${i.id}" data-index="${n}" data-key="reps" value="${set.target.reps ?? ""}"></div>`,
-      )
-      .join("")}<footer>${button("Done", "close", "", "dark")}</footer>`;
-  }
   if (vm.review) {
     const s = vm.data.active,
       p = vm.data.plans.find((p) => p.id === s.planId),
@@ -362,7 +350,6 @@ const actions = {
     vm.editor = null;
     exerciseEditor = null;
     replaceId = null;
-    targetId = null;
     vm.review = false;
     vm.importData = null;
     vm.cleverSource = null;
@@ -457,9 +444,6 @@ const actions = {
     replaceId = null;
   },
   "remove-exercise": (id) => app.removeExercise(id),
-  targets: (id) => {
-    targetId = id;
-  },
   timer: (action) => app.timer(action),
   review: () => {
     vm.review = true;
@@ -595,8 +579,6 @@ root.addEventListener("change", async (event) => {
         el.value.trim() === "" ? null : numeric();
     else if (f === "actual")
       app.set(id, n, { [key]: el.value.trim() === "" ? null : numeric() });
-    else if (f === "target")
-      app.target(id, n, key, el.value.trim() === "" ? null : numeric());
   });
   if ((el.tagName === "SELECT" && el.dataset.action) || vm.error) render();
 });

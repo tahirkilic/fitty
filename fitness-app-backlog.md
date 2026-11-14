@@ -211,7 +211,7 @@ Status: first functional preview implemented; release verification remains open.
 - F01–F10: implementation present in `dist/`, with the coverage mapping and remaining checks in `VERIFICATION.md`. Do not treat these stories as accepted until their browser/device checks pass.
 - Increment 1: schema/local repository, machine catalog, plan editor, and early versioned backup path implemented.
 - Increment 2: rotation, independent snapshots, cross-plan prefill, persistent set logging implemented.
-- Increment 3: timestamp timers, session editing, selective target/structure updates, conflict protection implemented.
+- Increment 3: timestamp timers, session editing, selective structure updates, conflict protection implemented.
 - Increment 4: history and validated replacement import implemented.
 - Automated validation: 13 unit/integration tests passing; syntax/boundary/offline-asset checks, TypeScript inner-layer checks, ESLint and Prettier passing. Browser system suite added for Chromium and WebKit, not run in this workspace because the preview relay is unavailable.
 - F11 remains open: real iPhone installation/offline/lifecycle/file flows, full browser verification, release acceptance.
@@ -236,7 +236,7 @@ Status: first functional preview implemented; release verification remains open.
 
 ## Collapsible workout exercises · 14 November 2026
 
-- F07 (depends on F05): each workout exercise uses a native keyboard-accessible disclosure. Headers retain exercise/machine, skipped status and completed/total sets. Cards start expanded; individual collapse choices survive rendering, reordering and navigation within the current page/session. Jump-to-machine expands its target. New sessions and page reloads start expanded. Disclosure state stays in the presentation layer and does not modify saved workout data.
+- F07 (depends on F05): each workout exercise uses a native keyboard-accessible disclosure. Headers retain exercise/machine, skipped status and completed/total sets. Cards start collapsed; individual disclosure choices survive rendering, reordering and navigation within the current page/session. New sessions and page reloads start collapsed. Disclosure state stays in the presentation layer and does not modify saved workout data.
 - Regression mapping: view-model unit coverage checks independent disclosure, session scoping, navigation and no training-data mutation; Chromium/WebKit system workflow checks touch/click, Enter/Space, progress, rerender/navigation, jump reopening and saved-set recovery after reload.
 - Local validation: all 23 unit/integration tests, syntax/architecture, TypeScript, ESLint and formatting checks passed. Browser regression coverage runs in GitHub CI; physical iPhone verification remains open.
 
@@ -262,4 +262,9 @@ Status: first functional preview implemented; release verification remains open.
 ## Exercise records and plan review · 14 November 2026
 
 - F02/F07/F08/F09 (dependencies: F05): machine forms contain name and number; workout cards expose per-set measurements and session actions. Plan review compares exercise selection, order and prescribed measurements. Historical records and version-1 backups remain readable.
-- Coverage: catalog/workout browser flows verify the remaining inputs; domain regression verifies preserved metadata creates no plan-change suggestions and target edits have clear before/after values.
+- Coverage: catalog/workout browser flows verify the remaining inputs; domain regression verifies preserved metadata creates no plan-change suggestions and set-count edits have clear before/after values.
+
+## Workout measurements · 14 November 2026
+
+- F05/F07/F08: workout cards log actual measurements and retain previous-session prefilling. Plan defaults are edited in Plans. The finish review retains optional exercise/order/set-count updates.
+- Regression coverage verifies set-count plan updates, unchanged prescribed measurements when logging actual results, cross-plan prefilling and update-time editor protection.

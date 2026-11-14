@@ -30,7 +30,7 @@ The full personal Clever Fit file has been structurally audited but has not yet 
 2. Tap **Share → Add to Home Screen**, then open the **Fitty** icon online once.
 3. Wait for **Offline ready**. Add machines under **Exercises**, create **Plans**, and configure their rotation.
 4. Start a workout, enter values, and tap the circle to complete each set. Session changes save immediately; plan edits save with **Save plan**.
-5. Finish and review any target or structure changes to keep in the plan. Actual results do not automatically change plan targets. Exercises with no completed sets become skipped.
+5. Finish and review any exercise selection, order or set-count changes to keep in the plan. Actual results do not automatically change plan targets. Exercises with no completed sets become skipped.
 6. Regularly use **Backup → Download JSON backup** and save the file in Files.
 
 Use the same website address and Home Screen app. Storage belongs to the browser, device, and origin; Safari and an installed app can have different storage on some iOS versions. Export before moving to another address/device, uninstalling, or clearing website data. Avoid logging in multiple windows at once. Timers recover from timestamps; background sound and lock-screen notifications are not guaranteed.

@@ -126,15 +126,6 @@ export class Training {
       item.skipped = !item.skipped;
     });
   }
-  target(itemId, index, key, value) {
-    invariant(
-      ["weight", "reps", "durationSeconds"].includes(key),
-      "Unknown target field",
-    );
-    this.editSession((s) => {
-      s.items.find((i) => i.id === itemId).sets[index].target[key] = value;
-    });
-  }
   set(itemId, index, values) {
     this.editSession((s) =>
       Object.assign(s.items.find((i) => i.id === itemId).sets[index], values),

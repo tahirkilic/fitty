@@ -153,12 +153,7 @@ for (const [engine, type] of [
         "40.5",
       );
       await page.getByRole("button", { name: "✓", exact: true }).waitFor();
-      await page
-        .getByRole("button", { name: "Edit targets", exact: true })
-        .click();
-      await page.getByLabel("Target weight 1", { exact: true }).fill("35");
-      await page.getByLabel("Target weight 1", { exact: true }).blur();
-      await page.getByRole("button", { name: "Done", exact: true }).click();
+      await card.getByRole("button", { name: "+ Set", exact: true }).click();
       await page.getByRole("button", { name: "Finish", exact: true }).click();
       await page.locator('[name="plan-change"]').check();
       await page.getByRole("button", { name: "Save finished workout" }).click();
@@ -173,7 +168,7 @@ for (const [engine, type] of [
         await resultsTable.locator("thead th").allTextContents(),
         ["Set", "Weight", "Reps", "Status"],
       );
-      assert.equal(await resultsTable.locator("tbody tr").count(), 3);
+      assert.equal(await resultsTable.locator("tbody tr").count(), 4);
       assert.equal(
         await resultsTable.locator("tbody tr").first().innerText(),
         "1\t40.5 kg\t9\t✓ Completed",
@@ -645,15 +640,16 @@ for (const [engine, type] of [
       await page.locator("details.workout-exercise summary").first().click();
       // An update arriving must not replace the whole form or erase a draft.
       await page
-        .getByRole("button", { name: "Edit targets", exact: true })
+        .getByRole("button", { name: "Exercises", exact: true })
         .click();
-      await page.getByLabel("Target weight 1", { exact: true }).fill("37.5");
+      await page.getByRole("button", { name: "Edit", exact: true }).click();
+      await page.locator("#exercise-name").fill("Draft machine name");
       server.release(2);
       await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
       await page.getByText("Update available", { exact: true }).waitFor();
       assert.equal(
-        await page.getByLabel("Target weight 1", { exact: true }).inputValue(),
-        "37.5",
+        await page.locator("#exercise-name").inputValue(),
+        "Draft machine name",
       );
       assert.equal(
         await page.locator("html").getAttribute("data-test-version"),
@@ -668,14 +664,7 @@ for (const [engine, type] of [
         await page.locator("html").getAttribute("data-test-version"),
         "1",
       );
-      await page.getByRole("button", { name: "Done", exact: true }).click();
-      // Restore the unchanged target so exact data preservation is checked.
-      await page
-        .getByRole("button", { name: "Edit targets", exact: true })
-        .click();
-      await page.getByLabel("Target weight 1", { exact: true }).fill("0");
-      await page.getByLabel("Target weight 1", { exact: true }).blur();
-      await page.getByRole("button", { name: "Done", exact: true }).click();
+      await page.getByRole("button", { name: "Cancel", exact: true }).click();
       assert.equal(
         await page.evaluate(() => localStorage.getItem("fitty.fitness.v1")),
         stored,

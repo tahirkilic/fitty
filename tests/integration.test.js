@@ -103,12 +103,10 @@ test("F07/F08: session edit safeguards and selected plan updates preserve histor
   app.addExercise(exercise);
   const added = app.data.active.items[1].id;
   app.move(added, -1);
-  app.editSession((s) => {
-    s.items[1].sets[0].target.weight = 25;
-  });
+  app.addSet(first);
   app.set(first, 0, { weight: 99 });
   app.finish(["structure", first]);
-  assert.equal(app.data.plans[0].items[1].sets[0].weight, 25);
+  assert.equal(app.data.plans[0].items[1].sets.length, 4);
   assert.equal(app.data.sessions[0].items[1].sets[0].weight, 99);
   assert.equal(app.data.sessions[0].items[0].skipped, true);
   app.exercise({ name: "Changed catalog", number: "100" }, exercise);
@@ -118,9 +116,7 @@ test("F08: conflicts do not overwrite newer plans or lose active results", () =>
   const { app } = setup(),
     { a } = seed(app);
   app.start(a);
-  app.editSession((s) => {
-    s.items[0].sets[0].target.weight = 25;
-  });
+  app.addSet(app.data.active.items[0].id);
   app.plan({ name: "New plan", rest: 22, items: [] }, a);
   assert.throws(() => app.finish([app.data.active.items[0].id]), /changed/);
   assert(app.data.active);

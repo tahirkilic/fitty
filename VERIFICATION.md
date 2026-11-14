@@ -10,7 +10,7 @@
 | F04   | Rotation, manual start, resume, explicit discard                             | integration: rotation, snapshot and recovery                                   | Browser recovery                                          |
 | F05   | Cross-plan prefill, fallback, completion/undo, set changes                   | integration: per-set prior results, fallback, reload                           | Browser interaction                                       |
 | F06   | Timestamp rest; restart/skip                                                 | unit timestamp math; integration controlled clock                              | Backgrounding on iPhone                                   |
-| F07   | Jump, defer/reorder, skip, add/remove/replace, targets                       | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
+| F07   | Jump, defer/reorder, skip, add/remove/replace                                | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
 | F08   | Partial finish; before/after review; opt-in plan updates; conflict refusal   | unit plan diffs; integration partial finish, conflict, selective changes       | Browser checkbox workflow                                 |
 | F09   | Historical names/results, previous source dates                              | integration: catalog edits preserve history                                    | Browser history display                                   |
 | F10   | Versioned offline export, preview/confirm restore, boundary validation       | integration: round trip, malformed/reference/version rejection, failed restore | iOS Files download/upload                                 |
@@ -18,7 +18,7 @@
 
 ## Browser suite
 
-`tests/browser.system.mjs` includes Chromium and WebKit at iPhone viewport size. It covers machine/plan creation, duplication, logging, reload, selective targets, cross-plan prefill, JSON download/import, malformed import, and offline recovery. Not run here: managed preview daemon/relay was unavailable, and the deployed private site requires interactive ChatGPT sign-in in the test browser. Managed deployment succeeded; its access gate was observed in the cloud browser. No alternate server or browser route was substituted. Full browser automation and actual localStorage adapter integration remain unverified. DOM binding type coverage remains a future improvement.
+`tests/browser.system.mjs` includes Chromium and WebKit at iPhone viewport size. It covers machine/plan creation, duplication, logging, reload, selective set counts, cross-plan prefill, JSON download/import, malformed import, and offline recovery. Not run here: managed preview daemon/relay was unavailable, and the deployed private site requires interactive ChatGPT sign-in in the test browser. Managed deployment succeeded; its access gate was observed in the cloud browser. No alternate server or browser route was substituted. Full browser automation and actual localStorage adapter integration remain unverified. DOM binding type coverage remains a future improvement.
 
 ## Manual iPhone release gate (not run)
 
@@ -45,3 +45,7 @@ All 34 unit/integration tests and all three Chromium system workflows passed. Ti
 ## Exercise records and plan review — 14 November 2026
 
 All 35 unit/integration tests and three Chromium system workflows passed. Catalog forms expose name and number; workout cards expose per-set measurements. Preserved metadata is excluded from plan-change comparisons. A previous-release backup restored, reloaded and exported unchanged, with no false plan changes and no changes to completed history. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.
+
+## Workout measurements — 14 November 2026
+
+All 35 unit/integration tests and three Chromium system workflows passed. Session cards log actual results; plan defaults remain editable in Plans. System coverage verifies optional set-count updates, previous-session prefilling and protection of a catalog editor draft during an app update. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.

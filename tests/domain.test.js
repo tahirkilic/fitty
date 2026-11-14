@@ -41,9 +41,7 @@ test("F08: actual results and skips are not prescription changes", () => {
   app.set(id, 0, { weight: 42.5, reps: 9 });
   app.complete(id, 0);
   assert.deepEqual(app.changes(), []);
-  app.editSession((s) => {
-    s.items[0].sets[0].target.weight = 30;
-  });
+  app.addSet(id);
   assert.equal(planChanges(app.data.active).length, 1);
 });
 test("view model exposes recoverable errors and suggested plan", () => {
@@ -107,9 +105,9 @@ test("F08: preserved metadata never creates spurious plan changes", () => {
   const before = structuredClone(app.data);
   assert.deepEqual(app.changes(), []);
   assert.deepEqual(app.data, before);
-  app.target(app.data.active.items[0].id, 0, "weight", 30);
+  app.addSet(app.data.active.items[0].id);
   const changes = app.changes();
   assert.equal(changes.length, 1);
   assert.equal(changes[0].before, "0 kg × 10, 0 kg × 10, 0 kg × 10");
-  assert.equal(changes[0].after, "30 kg × 10, 0 kg × 10, 0 kg × 10");
+  assert.equal(changes[0].after, "0 kg × 10, 0 kg × 10, 0 kg × 10, 0 kg × 10");
 });
