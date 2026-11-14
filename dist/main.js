@@ -1,3 +1,8 @@
+import {
+  formatNumber,
+  parseNumber,
+  formatPrescription,
+} from "./presentation/numbers.js";
 import { BrowserExerciseDrag } from "./infrastructure/exercise-drag.js";
 import { APP_VERSION, SHELL_CACHE } from "./domain/app-version.js";
 import { Training } from "./application/training.js";
@@ -32,7 +37,7 @@ const date = (value) => {
 const results = (set, kind) =>
   kind === "cardio" || kind === "isometric"
     ? `${set.durationSeconds === null || set.durationSeconds === undefined ? "—" : minutes(set.durationSeconds)} min`
-    : `${set.weight ?? "—"} kg × ${set.reps ?? "—"}`;
+    : `${formatNumber(set.weight)} kg × ${formatNumber(set.reps)}`;
 const minutes = (seconds) =>
   `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, "0")}`;
 let vm,
@@ -146,11 +151,11 @@ function setRows(item, editor = false) {
       .map((set, index) => {
         const field = editor ? "plan" : "actual";
         const input = (key, type, value, step, label) =>
-          `<input aria-label="${escape(item.name)} set ${index + 1} ${label}" type="number" inputmode="${type}" min="0" step="${step}" value="${value ?? ""}" data-field="${field}" data-id="${item.id}" data-index="${index}" data-key="${key}">`;
+          `<input aria-label="${escape(item.name)} set ${index + 1} ${label}" type="${type === "decimal" ? "text" : "number"}" inputmode="${type}" lang="de-DE" ${type === "decimal" ? 'autocomplete="off" spellcheck="false"' : `min="0" step="${step}"`} value="${value == null ? "" : type === "decimal" ? formatNumber(value) : value}" data-field="${field}" data-id="${item.id}" data-index="${index}" data-key="${key}">`;
         const measurements = timed
           ? input(
               "durationSeconds",
-              "numeric",
+              "decimal",
               set.durationSeconds,
               1,
               "duration seconds",
@@ -210,7 +215,7 @@ function historySets(item) {
   return `<table class="history-sets"><caption class="sr">${escape(item.name)} set results</caption><thead><tr><th scope="col">Set</th>${timed ? '<th scope="col">Duration</th>' : '<th scope="col">Weight</th><th scope="col">Reps</th>'}<th scope="col">Status</th></tr></thead><tbody>${item.sets
     .map(
       (set, index) =>
-        `<tr><th scope="row">${index + 1}</th>${timed ? `<td>${set.durationSeconds == null ? "—" : minutes(set.durationSeconds) + " min"}</td>` : `<td>${set.weight == null ? "—" : escape(set.weight) + " kg"}</td><td>${escape(set.reps ?? "—")}</td>`}<td class="${set.done ? "history-completed" : "history-unfinished"}">${set.done ? "✓ Completed" : "Unfinished"}</td></tr>`,
+        `<tr><th scope="row">${index + 1}</th>${timed ? `<td>${set.durationSeconds == null ? "—" : minutes(set.durationSeconds) + " min"}</td>` : `<td>${set.weight == null ? "—" : formatNumber(set.weight) + " kg"}</td><td>${escape(set.reps ?? "—")}</td>`}<td class="${set.done ? "history-completed" : "history-unfinished"}">${set.done ? "✓ Completed" : "Unfinished"}</td></tr>`,
     )
     .join("")}</tbody></table>`;
 }
@@ -259,7 +264,11 @@ function modal() {
   if (vm.review) {
     const s = vm.data.active,
       p = vm.data.plans.find((p) => p.id === s.planId),
-      changes = app.changes();
+      changes = app.changes().map((change) => ({
+        ...change,
+        before: formatPrescription(change.before),
+        after: formatPrescription(change.after),
+      }));
     const unfinished = s.items.reduce(
       (n, i) => n + i.sets.filter((x) => !x.done).length,
       0,
@@ -568,6 +577,7 @@ root.addEventListener("change", async (event) => {
     render();
     return;
   }
+  const hadError = Boolean(vm.error);
   vm.run(() => {
     if (el.tagName === "SELECT" && el.dataset.action) {
       actions[el.dataset.action](el.value);
@@ -579,11 +589,9 @@ root.addEventListener("change", async (event) => {
       n = +el.dataset.index,
       key = el.dataset.key;
     const numeric = () => {
-      if (el.value.trim() === "" || !el.checkValidity())
-        throw new Error(
-          "Enter a valid non-negative number. Repetitions must be whole numbers.",
-        );
-      return Number(el.value);
+      const value = parseNumber(el.value, key === "reps" || f === "plan-rest");
+      if (el.inputMode === "decimal") el.value = formatNumber(value);
+      return value;
     };
     if (f === "clever-mapping")
       vm.cleverChoices.mappings[el.dataset.key] = el.value;
@@ -597,7 +605,8 @@ root.addEventListener("change", async (event) => {
     else if (f === "actual")
       app.set(id, n, { [key]: el.value.trim() === "" ? null : numeric() });
   });
-  if ((el.tagName === "SELECT" && el.dataset.action) || vm.error) render();
+  if ((el.tagName === "SELECT" && el.dataset.action) || vm.error || hadError)
+    render();
 });
 if (vm) {
   new BrowserExerciseDrag(root, (id, position, keyboard) => {

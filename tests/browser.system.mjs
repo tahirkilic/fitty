@@ -127,7 +127,7 @@ for (const [engine, type] of [
       await page.getByText("Machine 27", { exact: true }).waitFor();
       await page
         .getByLabel("Test press set 1 weight", { exact: true })
-        .fill("40.5");
+        .fill("40,5");
       await page
         .getByLabel("Test press set 1 repetitions", { exact: true })
         .fill("9");
@@ -189,7 +189,7 @@ for (const [engine, type] of [
         await page
           .getByLabel("Test press set 1 weight", { exact: true })
           .inputValue(),
-        "40.5",
+        "40,5",
       );
       await page.getByRole("button", { name: "✓", exact: true }).waitFor();
       await card.getByRole("button", { name: "+ Set", exact: true }).click();
@@ -210,7 +210,7 @@ for (const [engine, type] of [
       assert.equal(await resultsTable.locator("tbody tr").count(), 4);
       assert.equal(
         await resultsTable.locator("tbody tr").first().innerText(),
-        "1\t40.5 kg\t9\t✓ Completed",
+        "1\t40,5 kg\t9\t✓ Completed",
       );
       assert.match(
         await resultsTable.locator("tbody tr").nth(1).innerText(),
@@ -247,7 +247,7 @@ for (const [engine, type] of [
         await page
           .getByLabel("Test press set 1 weight", { exact: true })
           .inputValue(),
-        "40.5",
+        "40,5",
       );
       assert.equal(
         await page
@@ -302,11 +302,11 @@ for (const [engine, type] of [
           await page
             .getByLabel("Test press set 1 weight", { exact: true })
             .inputValue(),
-          "40.5",
+          "40,5",
         );
         await page
           .getByLabel("Test press set 1 weight", { exact: true })
-          .fill("41.5");
+          .fill("41,5");
         await page
           .getByLabel("Test press set 1 weight", { exact: true })
           .blur();
@@ -338,7 +338,7 @@ for (const [engine, type] of [
           await offlinePage
             .getByLabel("Test press set 1 weight", { exact: true })
             .inputValue(),
-          "40.5",
+          "40,5",
         );
         assert(
           await offlinePage.evaluate(
@@ -733,7 +733,7 @@ for (const [engine, type] of [
         await page
           .getByLabel("Chest press set 1 weight", { exact: true })
           .inputValue(),
-        "42.5",
+        "42,5",
       );
       await page.getByRole("button", { name: "✓", exact: true }).waitFor();
       await other.getByText("Update available", { exact: true }).waitFor();
@@ -1382,3 +1382,183 @@ for (const [engine, type] of [
       await browser.close();
     }
   });
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  for (const locale of ["de-DE", "en-US"])
+    test(`${engine}/${locale}: German decimal editing, review, history, backup and prefilling`, async () => {
+      const browser = await type.launch();
+      const context = await browser.newContext({
+        locale,
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+        acceptDownloads: true,
+      });
+      const page = await context.newPage();
+      try {
+        const { setup, seed } = await import("./fixtures.js");
+        const { encodeBackup } = await import(
+          "../dist/infrastructure/storage.js"
+        );
+        const { readFile } = await import("node:fs/promises");
+        const { app, clock } = setup();
+        const { a } = seed(app);
+        app.exercise({ name: "Timed hold", number: "H", kind: "isometric" });
+        const plan = structuredClone(app.data.plans[0]);
+        plan.items[0].sets[0].weight = 12.75;
+        const timed = app.makeItem(app.data.exercises.at(-1).id);
+        timed.sets[0].durationSeconds = 30.5;
+        plan.items.push(timed);
+        app.plan(plan, a);
+        app.start(a);
+        app.set(app.data.active.items[0].id, 0, { weight: 40.5, reps: 9 });
+        app.complete(app.data.active.items[0].id, 0);
+        app.finish([]);
+        await page.goto(url);
+        await openMoreDestination(page, "Backup & restore");
+        await page.locator("#import-file").setInputFiles({
+          name: "decimal.json",
+          mimeType: "application/json",
+          buffer: Buffer.from(encodeBackup(app.data, clock.iso())),
+        });
+        await page
+          .getByRole("button", { name: "Replace all data", exact: true })
+          .click();
+        await page
+          .getByRole("button", { name: "History", exact: true })
+          .click();
+        await page.locator("details.card summary").first().click();
+        assert(
+          (await page.locator(".history-sets").first().innerText()).includes(
+            "40,5 kg",
+          ),
+        );
+        await page.getByRole("button", { name: "Plans", exact: true }).click();
+        await page
+          .getByRole("button", { name: "Edit plan", exact: true })
+          .first()
+          .click();
+        const weight = page.getByLabel("Chest press set 1 weight", {
+          exact: true,
+        });
+        const duration = page.getByLabel("Timed hold set 1 duration seconds", {
+          exact: true,
+        });
+        assert.equal(await weight.inputValue(), "12,75");
+        assert.equal(await weight.getAttribute("inputmode"), "decimal");
+        assert.equal(await duration.inputValue(), "30,5");
+        await weight.fill("15.25");
+        await weight.blur();
+        assert.equal(await weight.inputValue(), "15,25");
+        await duration.fill("30,75");
+        await duration.blur();
+        await page
+          .getByLabel("Chest press set 1 repetitions", { exact: true })
+          .fill("8");
+        await page
+          .getByRole("button", { name: "Save plan", exact: true })
+          .click();
+        const stored = () =>
+          page.evaluate(
+            () => JSON.parse(localStorage.getItem("fitty.fitness.v1")).data,
+          );
+        let data = await stored();
+        assert.equal(data.plans[0].items[0].sets[0].weight, 15.25);
+        assert.equal(data.plans[0].items[1].sets[0].durationSeconds, 30.75);
+        await page
+          .getByRole("button", { name: "Start ↗", exact: true })
+          .first()
+          .click();
+        const card = page.locator("details.workout-exercise").first();
+        await card.locator("summary").click();
+        assert.equal(await weight.inputValue(), "40,5");
+        await card.getByText(/Target 15,25 kg × 8/).waitFor();
+        await weight.fill("");
+        await weight.blur();
+        assert.equal((await stored()).active.items[0].sets[0].weight, null);
+        await weight.fill("0");
+        await weight.blur();
+        assert.equal((await stored()).active.items[0].sets[0].weight, 0);
+        await weight.fill("42,75");
+        await weight.blur();
+        const before = await stored();
+        for (const invalid of ["1.234,5", "-1", "1e3"]) {
+          await weight.fill(invalid);
+          await weight.blur();
+          await page.getByRole("alert").waitFor();
+          assert.deepEqual(await stored(), before);
+          assert.equal(await weight.inputValue(), "42,75");
+        }
+        const reps = page.getByLabel("Chest press set 1 repetitions", {
+          exact: true,
+        });
+        await reps.fill("8.5");
+        await reps.blur();
+        assert.deepEqual(await stored(), before);
+        await weight.fill("43,25");
+        await weight.blur();
+        await card
+          .getByRole("button", { name: "○", exact: true })
+          .first()
+          .click();
+        await card.getByRole("button", { name: "+ Set", exact: true }).click();
+        const timedCard = page.locator("details.workout-exercise").nth(1);
+        await timedCard.locator("summary").click();
+        assert.equal(await duration.inputValue(), "30,75");
+        await duration.fill("45,25");
+        await duration.blur();
+        await page
+          .getByRole("button", { name: "Review & finish →", exact: true })
+          .click();
+        const review = page.getByRole("dialog");
+        assert((await review.innerText()).includes("Before: 15,25 kg × 8;"));
+        assert((await review.innerText()).includes("After: 15,25 kg × 8;"));
+        assert(!(await review.innerText()).includes("15.25 kg"));
+        await page
+          .getByRole("button", { name: "Save finished workout", exact: true })
+          .click();
+        await page.locator("details.card summary").first().click();
+        assert(
+          (await page.locator(".history-sets").first().innerText()).includes(
+            "43,25 kg",
+          ),
+        );
+        await page.getByRole("button", { name: "Plans", exact: true }).click();
+        await page
+          .getByRole("button", { name: "Start ↗", exact: true })
+          .nth(1)
+          .click();
+        await page.locator("details.workout-exercise summary").first().click();
+        assert.equal(await weight.inputValue(), "43,25");
+        await page.reload();
+        await page
+          .getByRole("button", { name: "Resume workout ↗", exact: true })
+          .click();
+        await page.locator("details.workout-exercise summary").first().click();
+        assert.equal(await weight.inputValue(), "43,25");
+        await openMoreDestination(page, "Backup & restore");
+        const downloadEvent = page.waitForEvent("download");
+        await page
+          .getByRole("button", { name: "Download JSON backup ↗", exact: true })
+          .click();
+        const download = await downloadEvent;
+        const backup = JSON.parse(
+          await readFile(await download.path(), "utf8"),
+        );
+        assert.equal(backup.data.active.items[0].sets[0].weight, 43.25);
+        assert.equal(
+          typeof backup.data.active.items[0].sets[0].weight,
+          "number",
+        );
+        assert.equal(
+          backup.data.plans[0].items[1].sets[0].durationSeconds,
+          30.75,
+        );
+      } finally {
+        await context.close();
+        await browser.close();
+      }
+    });

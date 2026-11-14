@@ -288,20 +288,11 @@ export function planChanges(session) {
       changes.push({
         key: item.id,
         label: item.name,
-        before: describe(old),
-        after: describe(item),
+        before: clone(old),
+        after: clone(item),
       });
   }
   return changes;
-}
-function describe(i) {
-  return i.sets
-    .map((s) =>
-      i.kind === "cardio" || i.kind === "isometric"
-        ? `${s.durationSeconds} seconds`
-        : `${s.weight} kg × ${s.reps}`,
-    )
-    .join(", ");
 }
 export function remainingSeconds(until, now) {
   return until ? Math.max(0, Math.ceil((until - now) / 1000)) : 0;

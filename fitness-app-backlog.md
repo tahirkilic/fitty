@@ -306,3 +306,9 @@ Status: first functional preview implemented; release verification remains open.
 
 - F01/F02/F10: bottom navigation contains Home, Plans, Workout and History. A top-right More button opens Exercises and Backup & restore in a native popover, with outside-tap/Escape dismissal and keyboard access. Selecting a destination closes the popover; More highlights secondary pages. Training data and persistence are unchanged.
 - Coverage: Chromium/WebKit navigation regression checks four main destinations, secondary-page access/selection, dismissal, keyboard focus, mobile touch targets and 320px/390px layout. Existing catalog, backup, recovery and offline system workflows use the More menu.
+
+## German decimal formatting · 14 November 2026
+
+- F03/F05/F08/F09/F10: plan and workout measurements (including previous-session prefilling), target text, history weights and plan-change comparisons use decimal commas regardless of browser locale. Comma entry and single-dot paste/keyboard entry normalize to commas. No thousands separators in measurement fields; mixed/grouped input is rejected. Repetitions and rest seconds remain integers. Decimal seconds from existing/imported timed exercises remain editable. JSON storage/export/import stays numeric with the existing schema and storage key.
+- Architecture: formatting/parsing belongs to presentation; domain plan-change comparisons expose structured prescriptions rather than formatted text. Review lists separate sets with semicolons to distinguish them from decimal commas.
+- Coverage: number-format/parser units cover precision, null/zero, comma/dot normalization, malformed input and integer constraints; integration covers numeric persistence, plan review, previous-session prefilling and backup round trips. Chromium/WebKit workflows test German and English browser locales, editing, invalid-input preservation, history, review, reload, backup and existing offline paths.

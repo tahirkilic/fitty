@@ -108,6 +108,8 @@ test("F08: preserved metadata never creates spurious plan changes", () => {
   app.addSet(app.data.active.items[0].id);
   const changes = app.changes();
   assert.equal(changes.length, 1);
-  assert.equal(changes[0].before, "0 kg × 10, 0 kg × 10, 0 kg × 10");
-  assert.equal(changes[0].after, "0 kg × 10, 0 kg × 10, 0 kg × 10, 0 kg × 10");
+  assert.equal(changes[0].before.sets.length, 3);
+  assert.deepEqual(changes[0].before.sets[0], { weight: 0, reps: 10 });
+  assert.equal(changes[0].after.sets.length, 4);
+  assert.deepEqual(changes[0].after.sets[3], { weight: 0, reps: 10 });
 });
