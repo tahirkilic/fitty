@@ -229,3 +229,4 @@ Status: first functional preview implemented; release verification remains open.
 
 - F09 (depends on F08): expanded sessions group results by exercise, with one numbered table row per set, aligned weight/reps or duration columns, explicit completed/unfinished labels, and a separate skipped-exercise label. Historical snapshots and persistence are unchanged.
 - Regression mapping: `tests/browser.system.mjs` checks recorded decimal values, unfinished sets, vertical row placement and no horizontal overflow at 320/390px in Chromium/WebKit; the imported-history flow covers duration and missing weight values.
+- Validation: 21 unit/integration tests, syntax/architecture checks, TypeScript, ESLint and formatting passed. New browser regressions remain unrun locally because the managed preview relay is unavailable; real iPhone validation remains open.
