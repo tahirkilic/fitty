@@ -231,7 +231,7 @@ test("CF04/CF05: failure leaves all local data intact; invalid mapping has no si
   storage.fail = true;
   assert.throws(() => migration(app).import(input), /Could not save/);
   assert.deepEqual(app.data, before);
-  assert.equal(storage.getItem("form.fitness.v1"), null);
+  assert.equal(storage.getItem("fitty.fitness.v1"), null);
 });
 
 test("CF09: migration metadata survives export/restore and remains idempotent", () => {

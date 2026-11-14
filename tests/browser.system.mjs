@@ -166,7 +166,7 @@ for (const [engine, type] of [
         assert.equal(
           await page.evaluate(() => {
             const data = JSON.parse(
-              localStorage.getItem("form.fitness.v1"),
+              localStorage.getItem("fitty.fitness.v1"),
             ).data;
             return data.active.items[0].sets[0].weight;
           }),

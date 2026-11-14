@@ -24,12 +24,7 @@ self.addEventListener("activate", (event) =>
       const names = await caches.keys();
       await Promise.all(
         names
-          .filter(
-            (name) =>
-              (name.startsWith("form-shell-") ||
-                name.startsWith("fitty-shell-")) &&
-              name !== CACHE,
-          )
+          .filter((name) => name.startsWith("fitty-shell-") && name !== CACHE)
           .map((name) => caches.delete(name)),
       );
       await self.clients.claim();

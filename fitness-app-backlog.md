@@ -222,5 +222,5 @@ Status: first functional preview implemented; release verification remains open.
 
 ## Fitty naming update · 14 November 2026
 
-- F01/F10: interface, browser title, Home Screen metadata, package name, backup and recovery filenames use Fitty. Offline shell refreshed; original storage key and backup schema retained to preserve existing data.
-- Regression coverage: Chromium/WebKit system workflow asserts app and install names, backup filename, and loading existing data under the original storage key.
+- F01/F10: interface, browser title, Home Screen metadata, package name, backup and recovery filenames use Fitty. Offline shell refreshed; local storage uses `fitty.fitness.v1` with no legacy storage migration or cache handling. Backup schema remains version 1.
+- Regression coverage: Chromium/WebKit system workflow asserts app and install names, backup filename, and offline persistence under the Fitty storage key.

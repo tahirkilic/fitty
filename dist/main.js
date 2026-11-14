@@ -45,7 +45,7 @@ try {
   root.innerHTML = `<main class="splash"><h1>Unable to open your data</h1><p>${escape(error.message)}</p><p>Existing storage has been kept. Do not clear website data. Export the raw data below for recovery.</p><button id="recover">Download recovery file</button></main>`;
   document.getElementById("recover").onclick = () =>
     download(
-      localStorage.getItem("form.fitness.v1") || "{}",
+      localStorage.getItem("fitty.fitness.v1") || "{}",
       "fitty-recovery.json",
     );
 }

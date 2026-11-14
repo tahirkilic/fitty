@@ -165,12 +165,12 @@ test("F01: two open windows cannot silently overwrite each other; unknown schema
     /another window/,
   );
   storage.setItem(
-    "form.fitness.v1",
+    "fitty.fitness.v1",
     JSON.stringify({ schemaVersion: 20, data: {} }),
   );
   assert.throws(() => new LocalRepository(storage).load(), /Unsupported/);
   assert.equal(
-    JSON.parse(storage.getItem("form.fitness.v1")).schemaVersion,
+    JSON.parse(storage.getItem("fitty.fitness.v1")).schemaVersion,
     20,
   );
 });
@@ -187,20 +187,4 @@ test("F07 regression: completing a skipped exercise returns it to training", () 
   assert.throws(() => app.skip(id), /recorded sets/);
   app.finish([]);
   assert.equal(app.data.sessions[0].items[0].sets[0].done, true);
-});
-
-test("F01/F10: Fitty reopens original Form storage and restores older backups", () => {
-  const { app, storage, reopen, clock } = setup();
-  const { a } = seed(app);
-  app.start(a);
-  app.set(app.data.active.items[0].id, 0, { weight: 42.5, reps: 9 });
-  app.finish([]);
-  app.start(a);
-  const original = structuredClone(app.data);
-  const raw = storage.getItem("form.fitness.v1");
-  assert(raw);
-  assert.deepEqual(reopen().data, original);
-  assert.equal(storage.getItem("form.fitness.v1"), raw);
-  const olderBackup = encodeBackup(original, clock.iso());
-  assert.deepEqual(decodeBackup(olderBackup), original);
 });
