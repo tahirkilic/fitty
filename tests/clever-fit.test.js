@@ -400,7 +400,10 @@ if (process.env.CLEVER_FIT_FIXTURE_PATH)
       assert.equal(plan.items.length, latest.exercises.length);
       for (let index = 0; index < latest.exercises.length; index++) {
         assert.equal(plan.items[index].name, latest.exercises[index].name);
-        assert.equal(plan.items[index].sets.length, latest.exercises[index].sets.length);
+        assert.equal(
+          plan.items[index].sets.length,
+          latest.exercises[index].sets.length,
+        );
       }
     }
     for (let index = 0; index < data.sessions.length; index++) {
@@ -415,13 +418,21 @@ if (process.env.CLEVER_FIT_FIXTURE_PATH)
         sourceSession.name,
       );
       assert.equal(actual.items.length, sourceSession.exercises.length);
-      for (let exerciseIndex = 0; exerciseIndex < sourceSession.exercises.length; exerciseIndex++) {
+      for (
+        let exerciseIndex = 0;
+        exerciseIndex < sourceSession.exercises.length;
+        exerciseIndex++
+      ) {
         const sourceExercise = sourceSession.exercises[exerciseIndex];
         const recorded = actual.items[exerciseIndex];
         assert.equal(recorded.name, sourceExercise.name);
         assert.equal(recorded.kind, sourceExercise.type);
         assert.equal(recorded.sets.length, sourceExercise.sets.length);
-        for (let setIndex = 0; setIndex < sourceExercise.sets.length; setIndex++) {
+        for (
+          let setIndex = 0;
+          setIndex < sourceExercise.sets.length;
+          setIndex++
+        ) {
           const expected = sourceExercise.sets[setIndex];
           const logged = recorded.sets[setIndex];
           assert.equal(logged.weight, expected.weightKg);
@@ -431,7 +442,9 @@ if (process.env.CLEVER_FIT_FIXTURE_PATH)
         }
       }
     }
-    const roundTrip = decodeBackup(encodeBackup(app.data, new Date().toISOString()));
+    const roundTrip = decodeBackup(
+      encodeBackup(app.data, new Date().toISOString()),
+    );
     assert.deepEqual(roundTrip, app.data);
     assert.equal(migration(app).import(data).sessions, 0);
     assert.equal(app.data.sessions.length, 47);
