@@ -273,3 +273,8 @@ Status: first functional preview implemented; release verification remains open.
 
 - F07 (depends on F05): workout cards expose set addition, moving up, deferring and removing. New exercises are appended through the session exercise picker. Recorded sets cannot be removed without undoing completion.
 - Regression coverage verifies the exact card action list and confirms adding an exercise preserves recorded results and creates a separate session item.
+
+## Confirm exercise and set deletion · 14 November 2026
+
+- F03/F05/F07: removing an exercise or deleting a set requires explicit confirmation naming the exercise and set number where applicable. This applies to active workouts and plan drafts. Cancelling preserves data; confirmed workout changes save immediately, and plan drafts still require Save plan. Existing recorded-result safeguards remain enforced.
+- Regression mapping: Chromium/WebKit system workflows cover cancel/confirm for both actions, stored-data preservation, plan drafts, recorded-set safeguards and reload persistence. Existing integration tests verify removal rules and history preservation.

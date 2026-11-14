@@ -53,3 +53,7 @@ All 35 unit/integration tests and three Chromium system workflows passed. Sessio
 ## Session exercise actions — 14 November 2026
 
 All 35 unit/integration tests and three Chromium system workflows passed. Browser coverage asserts the complete exercise action list; integration verifies newly added exercises append independently without altering recorded sets. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.
+
+## Confirm exercise and set deletion — 14 November 2026
+
+All 35 unit/integration tests and four Chromium system workflows passed. The new browser workflow covers cancelling and confirming exercise/set removal in workouts and plan drafts, unchanged storage on cancellation, immediate workout persistence, reload recovery, preserved history/source plans and recorded-result safeguards. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit coverage is included but remains blocked by the host libraries listed above; physical iPhone verification remains open.

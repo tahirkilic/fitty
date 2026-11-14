@@ -29,7 +29,7 @@ The full personal Clever Fit file has been structurally audited but has not yet 
 1. Open your deployed Fitty URL in Safari while online. Managed hosting may require ChatGPT sign-in; the app has no account database.
 2. Tap **Share → Add to Home Screen**, then open the **Fitty** icon online once.
 3. Wait for **Offline ready**. Add machines under **Exercises**, create **Plans**, and configure their rotation.
-4. Start a workout, enter values, and tap the circle to complete each set. Session changes save immediately; plan edits save with **Save plan**.
+4. Start a workout, enter values, and tap the circle to complete each set. Session changes save immediately; plan edits save with **Save plan**. Removing an exercise or deleting a set asks for confirmation in workouts and the plan editor; cancelling keeps it unchanged.
 5. Finish and review any exercise selection, order or set-count changes to keep in the plan. Actual results do not automatically change plan targets. Exercises with no completed sets become skipped.
 6. Regularly use **Backup → Download JSON backup** and save the file in Files.
 

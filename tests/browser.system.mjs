@@ -744,3 +744,150 @@ for (const [engine, type] of [
       await server.close();
     }
   });
+
+async function answerConfirmation(page, button, message, accept) {
+  const pending = page.waitForEvent("dialog");
+  const click = button.click();
+  const dialog = await pending;
+  assert.equal(dialog.type(), "confirm");
+  assert.equal(dialog.message(), message);
+  if (accept) await dialog.accept();
+  else await dialog.dismiss();
+  await click;
+}
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  test(`${engine}: exercise and set deletion requires consent and preserves recorded results`, async () => {
+    const browser = await type.launch();
+    try {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      const page = await context.newPage();
+      const { setup, seed } = await import("./fixtures.js");
+      const { encodeBackup } = await import(
+        "../dist/infrastructure/storage.js"
+      );
+      const { app, clock } = setup();
+      const { a, b, exercise } = seed(app);
+      app.start(b);
+      app.complete(app.data.active.items[0].id, 0);
+      app.finish([]);
+      app.start(a);
+      app.complete(app.data.active.items[0].id, 0);
+      app.addExercise(exercise);
+      await page.goto(url);
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await page.locator("#import-file").setInputFiles({
+        name: "workout.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(encodeBackup(app.data, clock.iso())),
+      });
+      await page
+        .getByRole("button", { name: "Replace all data", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      const stored = () =>
+        page.evaluate(() => localStorage.getItem("fitty.fitness.v1"));
+      const before = await stored();
+      const cards = page.locator("details.workout-exercise");
+      await cards.nth(1).locator("summary").click();
+      const deleteSet = cards
+        .nth(1)
+        .locator('[data-action="remove-set"]')
+        .nth(2);
+      const setMessage = "Delete set 3 from “Chest press” for this workout?";
+      await answerConfirmation(page, deleteSet, setMessage, false);
+      assert.equal(await stored(), before);
+      assert.equal(
+        await cards.nth(1).locator(".set-grid:not(.header)").count(),
+        3,
+      );
+      await answerConfirmation(page, deleteSet, setMessage, true);
+      assert.equal(
+        await cards.nth(1).locator(".set-grid:not(.header)").count(),
+        2,
+      );
+      let data = JSON.parse(await stored()).data;
+      assert.equal(data.active.items[1].sets.length, 2);
+      assert.deepEqual(data.active.items[0], app.data.active.items[0]);
+      const afterSet = await stored();
+      const remove = cards
+        .nth(1)
+        .getByRole("button", { name: "Remove", exact: true });
+      const exerciseMessage =
+        "Remove “Chest press” and its sets from this workout?";
+      await answerConfirmation(page, remove, exerciseMessage, false);
+      assert.equal(await stored(), afterSet);
+      await answerConfirmation(page, remove, exerciseMessage, true);
+      assert.equal(await cards.count(), 1);
+      const afterRemoval = await stored();
+      await cards.first().locator("summary").click();
+      await answerConfirmation(
+        page,
+        cards.first().locator('[data-action="remove-set"]').first(),
+        "Delete set 1 from “Chest press” for this workout?",
+        true,
+      );
+      await page
+        .getByRole("alert")
+        .getByText(/Undo completion/)
+        .waitFor();
+      assert.equal(await stored(), afterRemoval);
+      await answerConfirmation(
+        page,
+        cards.first().getByRole("button", { name: "Remove", exact: true }),
+        exerciseMessage,
+        true,
+      );
+      await page
+        .getByRole("alert")
+        .getByText(/Recorded results/)
+        .waitFor();
+      assert.equal(await stored(), afterRemoval);
+      data = JSON.parse(afterRemoval).data;
+      assert.deepEqual(data.plans, app.data.plans);
+      assert.deepEqual(data.sessions, app.data.sessions);
+      await page.reload();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert.equal(await cards.count(), 1);
+      assert.equal(await stored(), afterRemoval);
+      await page.getByRole("button", { name: "Plans", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Edit plan", exact: true })
+        .first()
+        .click();
+      const editor = page.getByRole("dialog");
+      const planDeleteSet = editor
+        .locator('[data-action="plan-remove-set"]')
+        .nth(2);
+      const planSetMessage =
+        "Delete set 3 from “Chest press” in this plan? Changes apply when you save the plan.";
+      await answerConfirmation(page, planDeleteSet, planSetMessage, false);
+      assert.equal(
+        await editor.locator('[data-action="plan-remove-set"]').count(),
+        3,
+      );
+      await answerConfirmation(page, planDeleteSet, planSetMessage, true);
+      assert.equal(
+        await editor.locator('[data-action="plan-remove-set"]').count(),
+        2,
+      );
+      const planRemove = editor.locator('[data-action="plan-remove"]');
+      const planMessage =
+        "Remove “Chest press” from this plan? Changes apply when you save the plan.";
+      await answerConfirmation(page, planRemove, planMessage, false);
+      assert.equal(await planRemove.count(), 1);
+      await answerConfirmation(page, planRemove, planMessage, true);
+      assert.equal(await planRemove.count(), 0);
+      assert.equal(await stored(), afterRemoval);
+      await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+      assert.equal(await stored(), afterRemoval);
+    } finally {
+      await browser.close();
+    }
+  });

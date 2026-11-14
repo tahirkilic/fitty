@@ -377,7 +377,13 @@ const actions = {
     if (id) vm.editor.items.push(app.makeItem(id));
   },
   "plan-remove": (id) => {
-    vm.editor.items = vm.editor.items.filter((i) => i.id !== id);
+    const item = vm.editor.items.find((i) => i.id === id);
+    if (
+      confirm(
+        `Remove “${item.name}” from this plan? Changes apply when you save the plan.`,
+      )
+    )
+      vm.editor.items = vm.editor.items.filter((i) => i.id !== id);
   },
   "plan-up": (id) => {
     const a = vm.editor.items,
@@ -393,7 +399,13 @@ const actions = {
   "plan-remove-set": (arg) => {
     const [id, n] = arg.split("|");
     const i = vm.editor.items.find((i) => i.id === id);
-    if (i.sets.length > 1) i.sets.splice(+n, 1);
+    if (
+      i.sets.length > 1 &&
+      confirm(
+        `Delete set ${+n + 1} from “${i.name}” in this plan? Changes apply when you save the plan.`,
+      )
+    )
+      i.sets.splice(+n, 1);
   },
   duplicate: (id) => app.duplicate(id),
   "archive-plan": (id) => app.archivePlan(id),
@@ -422,7 +434,11 @@ const actions = {
   "add-set": (id) => app.addSet(id),
   "remove-set": (arg) => {
     const [id, index] = arg.split("|");
-    app.removeSet(id, +index);
+    const item = vm.data.active.items.find((i) => i.id === id);
+    if (
+      confirm(`Delete set ${+index + 1} from “${item.name}” for this workout?`)
+    )
+      app.removeSet(id, +index);
   },
   skip: (id) => app.skip(id),
   "move-up": (id) => app.move(id, -1),
@@ -430,7 +446,11 @@ const actions = {
   "session-add": (id) => {
     if (id) app.addExercise(id);
   },
-  "remove-exercise": (id) => app.removeExercise(id),
+  "remove-exercise": (id) => {
+    const item = vm.data.active.items.find((i) => i.id === id);
+    if (confirm(`Remove “${item.name}” and its sets from this workout?`))
+      app.removeExercise(id);
+  },
   timer: (action) => app.timer(action),
   review: () => {
     vm.review = true;
