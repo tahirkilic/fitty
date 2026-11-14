@@ -279,8 +279,7 @@ test("CF10: 47-session/1,557-set synthetic full-volume regression", () => {
         sets: Array.from({ length: totalSets }, (_, setIndex) => ({
           set_number: setIndex + 1,
           reps: type === "strength" ? 10 + setIndex : null,
-          weight_kg:
-            type !== "strength" || name === "Machine 1" ? null : 20.5,
+          weight_kg: type !== "strength" || name === "Machine 1" ? null : 20.5,
           duration_seconds:
             type === "strength" ? null : type === "cardio" ? 600 : 45,
         })),
