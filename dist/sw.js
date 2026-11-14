@@ -1,4 +1,4 @@
-const CACHE = "fitty-shell-v7";
+const CACHE = "fitty-shell-v8";
 const FILES = [
   "./",
   "./index.html",
@@ -9,6 +9,8 @@ const FILES = [
   "./application/training.js",
   "./application/clever-fit-migration.js",
   "./infrastructure/storage.js",
+  "./infrastructure/app-updates.js",
+  "./presentation/app-update-view-model.js",
   "./infrastructure/clever-fit.js",
   "./presentation/view-model.js",
   "./manifest.webmanifest",
@@ -16,8 +18,20 @@ const FILES = [
   "./icon-512.png",
 ];
 self.addEventListener("install", (event) =>
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(FILES))),
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) =>
+        cache.addAll(
+          FILES.map((file) => new Request(file, { cache: "reload" })),
+        ),
+      ),
+  ),
 );
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "ACTIVATE_UPDATE")
+    event.waitUntil(self.skipWaiting());
+});
 self.addEventListener("activate", (event) =>
   event.waitUntil(
     (async () => {
@@ -39,7 +53,10 @@ self.addEventListener("fetch", (event) => {
     return;
   event.respondWith(
     caches
-      .match(event.request)
-      .then((cached) => cached || fetch(event.request)),
+      .open(CACHE)
+      .then(
+        async (cache) =>
+          (await cache.match(event.request)) || fetch(event.request),
+      ),
   );
 });

@@ -8,6 +8,8 @@ import {
   decodeBackup,
 } from "./infrastructure/storage.js";
 import { ViewModel } from "./presentation/view-model.js";
+import { BrowserAppUpdates } from "./infrastructure/app-updates.js";
+import { AppUpdateViewModel } from "./presentation/app-update-view-model.js";
 
 const clock = { now: () => Date.now(), iso: () => new Date().toISOString() };
 const root = document.getElementById("app");
@@ -34,6 +36,7 @@ const minutes = (seconds) =>
 let vm,
   app,
   migration,
+  updates,
   offlineReady = false;
 try {
   app = new Training(new LocalRepository(localStorage), clock, () =>
@@ -237,7 +240,7 @@ function backup() {
       "Keep your progress.",
       "A simple file. Your complete training notebook.",
     ) +
-    `<section class="card"><h2>Export a backup</h2><p class="muted" style="margin:12px 0 20px">Includes machines, plans, rotation, history, and your current workout. Save to Files on your iPhone. You can upload this JSON file to ChatGPT for analysis.</p>${button("Download JSON backup ↗", "export", "", "dark")}</section><section class="card"><h2>Restore from a backup</h2><p class="muted" style="margin:12px 0">Restoring replaces all data on this device. A preview and confirmation appear before anything changes.</p><label for="import-file">Choose a JSON backup</label><input type="file" id="import-file" accept="application/json,.json"></section><section class="card"><h2>Import from Clever Fit</h2><p class="muted" style="margin:12px 0">Adds exercises, both plans and historical workouts without replacing your existing data. Review mappings before importing; repeated imports are safe. Works offline.</p><label for="clever-file">Choose Clever Fit workout JSON</label><input type="file" id="clever-file" accept="application/json,.json"></section><section class="card"><h3>Use on your iPhone</h3><p class="muted" style="margin-top:12px">Open this address in Safari, sign in if asked, then tap Share → Add to Home Screen. Open once while online and wait for “Offline ready” above. Your next visits can be offline. Keep this same address: data belongs to this device and website.</p><p class="muted" style="margin-top:12px">To update, reopen online. New files activate on a later launch; local data is preserved. Export before clearing Safari data or changing devices. Rest timers recalculate when you reopen; lock-screen alerts are not provided.</p></section>`
+    `<section class="card"><h2>Export a backup</h2><p class="muted" style="margin:12px 0 20px">Includes machines, plans, rotation, history, and your current workout. Save to Files on your iPhone. You can upload this JSON file to ChatGPT for analysis.</p>${button("Download JSON backup ↗", "export", "", "dark")}</section><section class="card"><h2>Restore from a backup</h2><p class="muted" style="margin:12px 0">Restoring replaces all data on this device. A preview and confirmation appear before anything changes.</p><label for="import-file">Choose a JSON backup</label><input type="file" id="import-file" accept="application/json,.json"></section><section class="card"><h2>Import from Clever Fit</h2><p class="muted" style="margin:12px 0">Adds exercises, both plans and historical workouts without replacing your existing data. Review mappings before importing; repeated imports are safe. Works offline.</p><label for="clever-file">Choose Clever Fit workout JSON</label><input type="file" id="clever-file" accept="application/json,.json"></section><section class="card"><h3>Use on your iPhone</h3><p class="muted" style="margin-top:12px">Open this address in Safari, sign in if asked, then tap Share → Add to Home Screen. Open once while online and wait for “Offline ready” above. Your next visits can be offline. Keep this same address: data belongs to this device and website.</p><p class="muted" style="margin-top:12px">Updates are checked when you open the app, return to it, or reconnect. When “Update available” appears, tap Reload when ready. Saved workouts are preserved; finish or cancel open editors first. Export before clearing Safari data or changing devices. Rest timers recalculate when you reopen; lock-screen alerts are not provided.</p></section>`
   );
 }
 function planModal() {
@@ -314,11 +317,21 @@ function modal() {
   }
   return "";
 }
+function renderUpdateStatus() {
+  if (!updates) return;
+  offlineReady = updates.offlineReady;
+  const status = document.getElementById("offline-state");
+  if (status)
+    status.textContent = offlineReady ? "Offline ready" : "Local notebook";
+  const region = document.getElementById("app-updates");
+  if (!region) return;
+  region.innerHTML = `${updates.available ? `<div class="message update-banner"><div><strong>Update available</strong><p>Your saved workout will be kept. Reload when you are ready.</p></div><button class="dark" data-action="reload-update" ${updates.applying ? "disabled" : ""}>${updates.applying ? "Updating…" : "Reload"}</button></div>` : ""}${updates.error ? `<div class="message error"><p>${escape(updates.error)}</p>${button("Retry update check", "check-update", "", "ghost")}</div>` : ""}`;
+}
 function render() {
   if (!vm) return;
   const content = { home, plans, exercises: catalog, workout, history, backup };
   const m = modal();
-  root.innerHTML = `<main class="shell"><header class="top"><div class="brand"><span>ƒ</span>Fitty<span style="background:transparent;font-size:12px;font-weight:400;letter-spacing:0">/ training</span></div><span class="status"><span class="dot"></span><span id="offline-state">${offlineReady ? "Offline ready" : "Local notebook"}</span></span></header>${vm.error ? `<div role="alert" class="message error">${escape(vm.error)}</div>` : ""}${vm.notice ? `<div role="status" class="message">${escape(vm.notice)}</div>` : ""}${content[vm.tab]()}</main><nav aria-label="Main navigation" class="nav">${[
+  root.innerHTML = `<main class="shell"><header class="top"><div class="brand"><span>ƒ</span>Fitty<span style="background:transparent;font-size:12px;font-weight:400;letter-spacing:0">/ training</span></div><span class="status"><span class="dot"></span><span id="offline-state">${offlineReady ? "Offline ready" : "Local notebook"}</span></span></header><div id="app-updates" aria-live="polite"></div>${vm.error ? `<div role="alert" class="message error">${escape(vm.error)}</div>` : ""}${vm.notice ? `<div role="status" class="message">${escape(vm.notice)}</div>` : ""}${content[vm.tab]()}</main><nav aria-label="Main navigation" class="nav">${[
     ["home", "Home"],
     ["plans", "Plans"],
     ["exercises", "Exercises"],
@@ -330,6 +343,7 @@ function render() {
     .join(
       "",
     )}</nav>${m ? `<div class="modal-backdrop"><section class="modal" role="dialog" aria-modal="true" aria-label="Edit and review">${vm.error ? `<p role="alert" class="message error">${escape(vm.error)}</p>` : ""}${m}</section></div>` : ""}`;
+  renderUpdateStatus();
 }
 const actions = {
   tab: (id) => {
@@ -509,6 +523,21 @@ root.addEventListener(
 root.addEventListener("click", (event) => {
   const el = event.target.closest("button[data-action]");
   if (!el || !vm) return;
+  if (el.dataset.action === "check-update") {
+    void updates?.check();
+    return;
+  }
+  if (el.dataset.action === "reload-update") {
+    document.activeElement?.blur();
+    if (modal() || vm.error) {
+      updates.error =
+        "Finish or cancel the open editor and resolve any save errors before reloading.";
+      renderUpdateStatus();
+      return;
+    }
+    void updates?.apply();
+    return;
+  }
   vm.run(() => actions[el.dataset.action]?.(el.dataset.arg));
   render();
 });
@@ -606,26 +635,17 @@ if (vm) {
         );
     }
   }, 1000);
-  if ("serviceWorker" in navigator)
-    navigator.serviceWorker
-      .register("./sw.js")
-      .then(async (registration) => {
-        await navigator.serviceWorker.ready;
-        const check = async () => {
-          offlineReady = await caches.has("fitty-shell-v7");
-          const status = document.getElementById("offline-state");
-          if (status)
-            status.textContent = offlineReady
-              ? "Offline ready"
-              : "Local notebook";
-        };
-        if (registration.installing)
-          registration.installing.addEventListener("statechange", check);
-        await check();
-      })
-      .catch(() => {
-        vm.notice =
-          "Offline setup did not complete. Reopen online to try again.";
-        render();
-      });
+  if ("serviceWorker" in navigator) {
+    updates = new AppUpdateViewModel(
+      new BrowserAppUpdates(
+        navigator.serviceWorker,
+        window,
+        document,
+        caches,
+        "fitty-shell-v8",
+      ),
+      () => window.location.reload(),
+    );
+    void updates.start(renderUpdateStatus);
+  }
 }

@@ -560,3 +560,14 @@ details .card {
 .history-unfinished {
   color: #79521f;
 }
+
+.update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.update-banner > div {
+  flex: 1 1 180px;
+}

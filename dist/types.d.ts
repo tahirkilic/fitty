@@ -75,3 +75,14 @@ export interface Clock {
   now(): number;
   iso(): string;
 }
+
+export interface AppUpdateState {
+  available: boolean;
+  offlineReady: boolean;
+  error: string;
+}
+export interface AppUpdateService {
+  start(notify: (state: AppUpdateState) => void): Promise<void>;
+  check(): Promise<void>;
+  activate(): Promise<void>;
+}

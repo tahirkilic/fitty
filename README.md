@@ -35,6 +35,14 @@ The full personal Clever Fit file has been structurally audited but has not yet 
 
 Use the same website address and Home Screen app. Storage belongs to the browser, device, and origin; Safari and an installed app can have different storage on some iOS versions. Export before moving to another address/device, uninstalling, or clearing website data. Avoid logging in multiple windows at once. Timers recover from timestamps; background sound and lock-screen notifications are not guaranteed.
 
+## App updates
+
+Fitty checks for updates on launch, when returning to the foreground (including restored pages), and when the connection returns. Checks bypass the browser's HTTP cache for the worker; new app files are downloaded into a separate offline cache before an update is offered.
+
+When **Update available** appears, tap **Reload** when ready. Saved plans, history, and the active workout stay on the device. Finish or cancel open editors and resolve save errors first. The app does not reload automatically; another open Fitty window also waits for its own Reload action. Failed checks or downloads show a retry action and leave the working version available.
+
+An installation from before this update feature may need one final online launch, complete close from the app switcher, and reopening to receive the new handler. Updating Safari does not update the Home Screen app's separate storage. Do not remove the icon or clear website data to force an update; export a backup from the Home Screen app first if troubleshooting requires those actions.
+
 ## Backup and restore
 
 **Download JSON backup** exports exercises, plans, rotation, history, and any active session. You can upload that file to ChatGPT for analysis yourself; there is no automatic AI connection.
@@ -115,7 +123,7 @@ Fitty uses layered MVVM with dependency injection:
 
 A complete dataset is stored in one localStorage value. Mutations clone and validate data, persist it with one `setItem`, then publish the new state. Failed writes retain the previous state; compare-before-write detects stale tabs. Malformed or unsupported stored data offers recovery download rather than a silent reset. Concurrent multi-window logging is not supported.
 
-When changing app assets, update the cache version in `dist/sw.js`, the ready indicator in `dist/main.js`, and the full shell list for new modules. New workers activate after old app clients close. Preserve the storage key for ordinary updates; breaking schema changes require explicit validated migration.
+When changing app assets, update the cache version in `dist/sw.js`, the ready indicator in `dist/main.js`, and the full shell list for new modules. New workers wait for the user's Reload action, or activate naturally after old app clients close. Worker changes activate without forced refreshes in other open windows; each window offers its own Reload action. Preserve the storage key for ordinary updates; breaking schema changes require explicit validated migration.
 
 Follow [AGENTS.md](AGENTS.md). The [original backlog](fitness-app-backlog.md) maps the first-release scope; the [migration backlog](clever-fit-migration-backlog-v2.md) tracks the implemented second iteration. iCloud/sync, accounts, embedded AI coaching, and automatic ChatGPT data access remain outside the current scope.
 

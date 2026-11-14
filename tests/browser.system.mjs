@@ -227,7 +227,7 @@ for (const [engine, type] of [
         // Keep the browser genuinely offline and verify cache plus UI writes.
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v7");
+            const cache = await caches.open("fitty-shell-v8");
             return Boolean(await cache.match("./main.js"));
           }),
         );
@@ -440,7 +440,7 @@ for (const [engine, type] of [
       if (engine === "webkit") {
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v7");
+            const cache = await caches.open("fitty-shell-v8");
             return Boolean(await cache.match("./main.js"));
           }),
         );
@@ -465,5 +465,229 @@ for (const [engine, type] of [
       }
     } finally {
       await browser.close();
+    }
+  });
+
+// Serve successive releases on one isolated origin so the real service-worker
+// lifecycle, cache installation and multi-window handover are exercised.
+async function updateServer() {
+  const { createServer } = await import("node:http");
+  const { readFile } = await import("node:fs/promises");
+  let version = 1;
+  let broken = false;
+  const server = createServer(async (request, response) => {
+    const pathname = new URL(request.url, "http://localhost").pathname;
+    const file = pathname === "/" ? "index.html" : pathname.slice(1);
+    if (broken && file === "icon-512.png") {
+      response.writeHead(503).end();
+      return;
+    }
+    try {
+      const source = new URL("../dist/" + file, import.meta.url);
+      if (!source.href.startsWith(new URL("../dist/", import.meta.url).href)) {
+        response.writeHead(404).end();
+        return;
+      }
+      let content = await readFile(source);
+      if (file.endsWith(".js"))
+        content = Buffer.from(
+          content
+            .toString()
+            .replaceAll("fitty-shell-v8", `fitty-shell-update-test-${version}`),
+        );
+      if (file === "index.html")
+        content = Buffer.from(
+          content
+            .toString()
+            .replace(
+              '<html lang="en">',
+              `<html lang="en" data-test-version="${version}">`,
+            ),
+        );
+      const mime = file.endsWith(".js")
+        ? "text/javascript"
+        : file.endsWith(".css")
+          ? "text/css"
+          : file.endsWith(".png")
+            ? "image/png"
+            : file.endsWith(".webmanifest")
+              ? "application/manifest+json"
+              : "text/html";
+      response
+        .writeHead(200, { "Content-Type": mime, "Cache-Control": "no-store" })
+        .end(content);
+    } catch {
+      response.writeHead(404).end();
+    }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  return {
+    url: `http://127.0.0.1:${server.address().port}/`,
+    release: (next, fail = false) => {
+      version = next;
+      broken = fail;
+    },
+    close: () =>
+      new Promise((resolve) => {
+        server.close(resolve);
+        server.closeAllConnections();
+      }),
+  };
+}
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  test(`${engine}: real update → explicit reload → active data preserved → other window consent → failed download`, async () => {
+    const server = await updateServer();
+    const browser = await type.launch();
+    try {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      const page = await context.newPage();
+      await page.goto(server.url);
+      await page.waitForFunction(() =>
+        Boolean(navigator.serviceWorker.controller),
+      );
+      await page.getByText("Offline ready", { exact: true }).waitFor();
+      assert.equal(
+        await page.getByText("Update available", { exact: true }).count(),
+        0,
+      );
+      const { setup, seed } = await import("./fixtures.js");
+      const { encodeBackup } = await import(
+        "../dist/infrastructure/storage.js"
+      );
+      const { app, clock } = setup();
+      const { a, b } = seed(app);
+      app.start(a);
+      app.complete(app.data.active.items[0].id, 0);
+      app.finish([]);
+      app.start(b);
+      app.set(app.data.active.items[0].id, 0, { weight: 42.5, reps: 8 });
+      app.complete(app.data.active.items[0].id, 0);
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await page.locator("#import-file").setInputFiles({
+        name: "workout.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(encodeBackup(app.data, clock.iso())),
+      });
+      await page
+        .getByRole("button", { name: "Replace all data", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      const stored = await page.evaluate(() =>
+        localStorage.getItem("fitty.fitness.v1"),
+      );
+      const other = await context.newPage();
+      await other.goto(server.url);
+      await other.waitForFunction(() =>
+        Boolean(navigator.serviceWorker.controller),
+      );
+      // An update arriving must not replace the whole form or erase a draft.
+      await page
+        .getByRole("button", { name: "Edit targets", exact: true })
+        .click();
+      await page.getByLabel("Target weight 1", { exact: true }).fill("37.5");
+      server.release(2);
+      await page.evaluate(() => window.dispatchEvent(new Event("pageshow")));
+      await page.getByText("Update available", { exact: true }).waitFor();
+      assert.equal(
+        await page.getByLabel("Target weight 1", { exact: true }).inputValue(),
+        "37.5",
+      );
+      assert.equal(
+        await page.locator("html").getAttribute("data-test-version"),
+        "1",
+      );
+      // Applying is blocked while an editor or a save error is present.
+      await page
+        .getByRole("button", { name: "Reload", exact: true })
+        .dispatchEvent("click");
+      await page.getByText(/Finish or cancel the open editor/).waitFor();
+      assert.equal(
+        await page.locator("html").getAttribute("data-test-version"),
+        "1",
+      );
+      await page.getByRole("button", { name: "Done", exact: true }).click();
+      // Restore the unchanged target so exact data preservation is checked.
+      await page
+        .getByRole("button", { name: "Edit targets", exact: true })
+        .click();
+      await page.getByLabel("Target weight 1", { exact: true }).fill("0");
+      await page.getByLabel("Target weight 1", { exact: true }).blur();
+      await page.getByRole("button", { name: "Done", exact: true }).click();
+      assert.equal(
+        await page.evaluate(() => localStorage.getItem("fitty.fitness.v1")),
+        stored,
+      );
+      await page.getByRole("button", { name: "Reload", exact: true }).click();
+      await page.waitForFunction(
+        () => document.documentElement.dataset.testVersion === "2",
+      );
+      assert.equal(
+        await page.evaluate(() => localStorage.getItem("fitty.fitness.v1")),
+        stored,
+      );
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert.equal(
+        await page
+          .getByLabel("Chest press set 1 weight", { exact: true })
+          .inputValue(),
+        "42.5",
+      );
+      await page.getByRole("button", { name: "✓", exact: true }).waitFor();
+      await other.getByText("Update available", { exact: true }).waitFor();
+      assert.equal(
+        await other.locator("html").getAttribute("data-test-version"),
+        "1",
+      );
+      await other.getByRole("button", { name: "Reload", exact: true }).click();
+      await other.waitForFunction(
+        () => document.documentElement.dataset.testVersion === "2",
+      );
+      assert.equal(
+        await other.evaluate(() => localStorage.getItem("fitty.fitness.v1")),
+        stored,
+      );
+      await other.close();
+      server.release(3, true);
+      await page.evaluate(() => window.dispatchEvent(new Event("online")));
+      await page.getByText(/The update could not be downloaded/).waitFor();
+      assert.equal(
+        await page.locator("html").getAttribute("data-test-version"),
+        "2",
+      );
+      assert.equal(
+        await page.evaluate(() => localStorage.getItem("fitty.fitness.v1")),
+        stored,
+      );
+      assert.equal(
+        await page.getByRole("button", { name: "Reload", exact: true }).count(),
+        0,
+      );
+      await context.setOffline(true);
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      assert(
+        await page
+          .getByRole("button", { name: "Download JSON backup ↗" })
+          .isVisible(),
+      );
+      assert(
+        await page.evaluate(async () =>
+          Boolean(
+            await (
+              await caches.open("fitty-shell-update-test-2")
+            ).match("./main.js"),
+          ),
+        ),
+      );
+    } finally {
+      await browser.close();
+      await server.close();
     }
   });
