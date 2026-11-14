@@ -104,7 +104,14 @@ for (const [engine, type] of [
         await page.locator("details.workout-exercise[open]").count(),
         0,
       );
-      assert.equal(await page.locator("main input[type=number]").count(), 6);
+      assert.equal(
+        await page.locator('main input[data-field="actual"]').count(),
+        6,
+      );
+      assert.equal(
+        await page.locator('main input[inputmode="decimal"]').count(),
+        3,
+      );
       assert.equal(await page.locator("main .timer").count(), 1);
       assert(await summary.getByText("0 of 3 sets completed").isVisible());
       await page.getByRole("button", { name: "Restart", exact: true }).click();
