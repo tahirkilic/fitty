@@ -318,13 +318,11 @@ function render() {
   if (!vm) return;
   const content = { home, plans, exercises: catalog, workout, history, backup };
   const m = modal();
-  root.innerHTML = `<main class="shell"><header class="top"><div class="brand"><span>ƒ</span>Fitty<span style="background:transparent;font-size:12px;font-weight:400;letter-spacing:0">/ training</span></div><span class="status"><span class="dot"></span><span id="offline-state">${offlineReady ? "Offline ready" : "Local notebook"}</span></span></header><div id="app-updates" aria-live="polite"></div>${vm.error ? `<div role="alert" class="message error">${escape(vm.error)}</div>` : ""}${vm.notice ? `<div role="status" class="message">${escape(vm.notice)}</div>` : ""}${content[vm.tab]()}</main><nav aria-label="Main navigation" class="nav">${[
+  root.innerHTML = `<main class="shell"><header class="top"><div class="brand"><span>ƒ</span>Fitty<span style="background:transparent;font-size:12px;font-weight:400;letter-spacing:0">/ training</span></div><div class="header-actions"><span class="status"><span class="dot"></span><span id="offline-state">${offlineReady ? "Offline ready" : "Local notebook"}</span></span><button class="ghost more-toggle${["exercises", "backup"].includes(vm.tab) ? " active" : ""}" popovertarget="more-navigation">More <span aria-hidden="true">⋯</span></button><nav id="more-navigation" class="more-navigation" aria-label="More navigation" popover>${button("Exercises", "tab", "exercises", vm.tab === "exercises" ? "active" : "")}${button("Backup & restore", "tab", "backup", vm.tab === "backup" ? "active" : "")}</nav></div></header><div id="app-updates" aria-live="polite"></div>${vm.error ? `<div role="alert" class="message error">${escape(vm.error)}</div>` : ""}${vm.notice ? `<div role="status" class="message">${escape(vm.notice)}</div>` : ""}${content[vm.tab]()}</main><nav aria-label="Main navigation" class="nav">${[
     ["home", "Home"],
     ["plans", "Plans"],
-    ["exercises", "Exercises"],
     ["workout", "Workout"],
     ["history", "History"],
-    ["backup", "Backup"],
   ]
     .map(([id, name]) => button(name, "tab", id, vm.tab === id ? "active" : ""))
     .join(

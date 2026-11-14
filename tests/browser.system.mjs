@@ -7,6 +7,13 @@ const require = createRequire(import.meta.url);
 const { chromium, webkit } = require(
   process.env.PLAYWRIGHT_MODULE || "playwright",
 );
+async function openMoreDestination(page, name) {
+  await page.getByRole("button", { name: "More", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "More navigation", exact: true })
+    .getByRole("button", { name, exact: true })
+    .click();
+}
 const url = process.env.BASE_URL;
 if (!url) throw new Error("Set BASE_URL to an isolated test deployment.");
 for (const [engine, type] of [
@@ -47,9 +54,7 @@ for (const [engine, type] of [
       );
       assert.equal(manifest.name, "Fitty");
       assert.equal(manifest.short_name, "Fitty");
-      await page
-        .getByRole("button", { name: "Exercises", exact: true })
-        .click();
+      await openMoreDestination(page, "Exercises");
       await page.getByRole("button", { name: "+ Add exercise" }).click();
       await page.locator("#exercise-name").fill("Test press");
       await page.locator("#exercise-number").fill("12");
@@ -72,9 +77,7 @@ for (const [engine, type] of [
       await page
         .getByRole("button", { name: "Duplicate", exact: true })
         .click();
-      await page
-        .getByRole("button", { name: "Exercises", exact: true })
-        .click();
+      await openMoreDestination(page, "Exercises");
       await page.getByRole("button", { name: "Edit", exact: true }).click();
       await page.locator("#exercise-number").fill("27");
       await page.getByRole("button", { name: "Save machine" }).click();
@@ -116,9 +119,7 @@ for (const [engine, type] of [
       await weight.waitFor({ state: "hidden" });
       await summary.click();
       await weight.waitFor({ state: "visible" });
-      await page
-        .getByRole("button", { name: "Exercises", exact: true })
-        .click();
+      await openMoreDestination(page, "Exercises");
       await page.getByRole("button", { name: "Edit", exact: true }).click();
       await page.locator("#exercise-number").fill("28");
       await page.getByRole("button", { name: "Save machine" }).click();
@@ -254,7 +255,7 @@ for (const [engine, type] of [
           .inputValue(),
         "9",
       );
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       const downloaded = page.waitForEvent("download");
       await page
         .getByRole("button", { name: "Download JSON backup ↗" })
@@ -431,7 +432,7 @@ for (const [engine, type] of [
       await page.waitForFunction(
         () => navigator.serviceWorker.controller !== null,
       );
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       // Prevent network access throughout the migration. Playwright's WebKit
       // context.setOffline() breaks file-picker processing even with a cached
       // application; request interception instead rejects all outgoing traffic.
@@ -504,7 +505,7 @@ for (const [engine, type] of [
         await bodyweight.locator("tbody tr").innerText(),
         "1\t—\t10\t✓ Completed",
       );
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       const downloaded = page.waitForEvent("download");
       await page
         .getByRole("button", { name: "Download JSON backup ↗" })
@@ -514,7 +515,7 @@ for (const [engine, type] of [
       await page.locator("#import-file").setInputFiles(backupFile);
       await page.getByRole("button", { name: "Replace all data" }).click();
       await page.getByText("Backup restored successfully.").waitFor();
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       await page.locator("#clever-file").setInputFiles(file);
       await page.getByText("2 already imported").waitFor();
       await page
@@ -661,7 +662,7 @@ for (const [engine, type] of [
       app.start(b);
       app.set(app.data.active.items[0].id, 0, { weight: 42.5, reps: 8 });
       app.complete(app.data.active.items[0].id, 0);
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       await page.locator("#import-file").setInputFiles({
         name: "workout.json",
         mimeType: "application/json",
@@ -681,9 +682,7 @@ for (const [engine, type] of [
       );
       await page.locator("details.workout-exercise summary").first().click();
       // An update arriving must not replace the whole form or erase a draft.
-      await page
-        .getByRole("button", { name: "Exercises", exact: true })
-        .click();
+      await openMoreDestination(page, "Exercises");
       await page.getByRole("button", { name: "Edit", exact: true }).click();
       await page.locator("#exercise-name").fill("Draft machine name");
       server.release(2);
@@ -762,7 +761,7 @@ for (const [engine, type] of [
         0,
       );
       await context.setOffline(true);
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       assert(
         await page
           .getByRole("button", { name: "Download JSON backup ↗" })
@@ -819,7 +818,7 @@ for (const [engine, type] of [
       app.complete(app.data.active.items[0].id, 0);
       app.addExercise(exercise);
       await page.goto(url);
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       await page.locator("#import-file").setInputFiles({
         name: "workout.json",
         mimeType: "application/json",
@@ -964,7 +963,7 @@ for (const [engine, type] of [
       const initial = structuredClone(app.data);
       const ids = initial.active.items.map((i) => i.id);
       await page.goto(url);
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       await page.locator("#import-file").setInputFiles({
         name: "drag.json",
         mimeType: "application/json",
@@ -1169,7 +1168,7 @@ for (const [engine, type] of [
       app.start(a);
       const before = structuredClone(app.data);
       await page.goto(url);
-      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await openMoreDestination(page, "Backup & restore");
       await page.locator("#import-file").setInputFiles({
         name: "history.json",
         mimeType: "application/json",
@@ -1278,3 +1277,103 @@ async function assertHistoryActionPlacement(page, entry) {
     );
   }
 }
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  test(`${engine}: compact navigation and More menu`, async () => {
+    const browser = await type.launch();
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+    });
+    const page = await context.newPage();
+    try {
+      await page.goto(url);
+      const main = page.getByRole("navigation", {
+        name: "Main navigation",
+        exact: true,
+      });
+      const toggle = page.getByRole("button", { name: "More", exact: true });
+      const menu = page.getByRole("navigation", {
+        name: "More navigation",
+        exact: true,
+      });
+      await toggle.waitFor();
+      assert.deepEqual(await main.getByRole("button").allTextContents(), [
+        "Home",
+        "Plans",
+        "Workout",
+        "History",
+      ]);
+      assert(!(await menu.isVisible()));
+      const before = await page.evaluate(() =>
+        localStorage.getItem("fitty.fitness.v1"),
+      );
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        await toggle.tap();
+        await menu.waitFor();
+        assert.deepEqual(await menu.getByRole("button").allTextContents(), [
+          "Exercises",
+          "Backup & restore",
+        ]);
+        for (const button of [
+          ...(await main.getByRole("button").all()),
+          ...(await menu.getByRole("button").all()),
+          toggle,
+        ]) {
+          const box = await button.boundingBox();
+          assert(box.width >= 44 && box.height >= 44);
+        }
+        const box = await menu.boundingBox();
+        assert(box.x >= 0 && box.x + box.width <= width);
+        assert(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= innerWidth,
+          ),
+        );
+        await page.keyboard.press("Escape");
+        assert(!(await menu.isVisible()));
+        assert(await toggle.evaluate((el) => el === document.activeElement));
+        await page.keyboard.press("Enter");
+        await menu.waitFor();
+        await page.keyboard.press("Tab");
+        assert.equal(await page.locator(":focus").textContent(), "Exercises");
+        await page.keyboard.press("Enter");
+        await page
+          .getByRole("button", { name: "+ Add exercise", exact: true })
+          .waitFor();
+        assert(!(await menu.isVisible()));
+        assert(await toggle.evaluate((el) => el.classList.contains("active")));
+        await openMoreDestination(page, "Backup & restore");
+        await page
+          .getByRole("heading", { name: "Export a backup", exact: true })
+          .waitFor();
+        assert(!(await menu.isVisible()));
+        await toggle.tap();
+        await page.locator(".brand").tap();
+        assert(!(await menu.isVisible()));
+        for (const name of ["Home", "Plans", "Workout", "History"]) {
+          await main.getByRole("button", { name, exact: true }).tap();
+          assert(
+            await main
+              .getByRole("button", { name, exact: true })
+              .evaluate((el) => el.classList.contains("active")),
+          );
+          assert(
+            !(await toggle.evaluate((el) => el.classList.contains("active"))),
+          );
+        }
+      }
+      assert.equal(
+        await page.evaluate(() => localStorage.getItem("fitty.fitness.v1")),
+        before,
+      );
+    } finally {
+      await context.close();
+      await browser.close();
+    }
+  });

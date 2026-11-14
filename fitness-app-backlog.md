@@ -301,3 +301,8 @@ Status: first functional preview implemented; release verification remains open.
 ## History action placement · 14 November 2026
 
 - F09: Delete workout is right-aligned beside the recorded-set count, above exercise results. Imported-workout provenance stays on a separate line. Chromium/WebKit history workflows check horizontal placement, vertical alignment, 44px touch height and no horizontal overflow at 320px/390px widths for regular and imported workouts. Deletion confirmation behavior is unchanged.
+
+## Simplified navigation · 14 November 2026
+
+- F01/F02/F10: bottom navigation contains Home, Plans, Workout and History. A top-right More button opens Exercises and Backup & restore in a native popover, with outside-tap/Escape dismissal and keyboard access. Selecting a destination closes the popover; More highlights secondary pages. Training data and persistence are unchanged.
+- Coverage: Chromium/WebKit navigation regression checks four main destinations, secondary-page access/selection, dismissal, keyboard focus, mobile touch targets and 320px/390px layout. Existing catalog, backup, recovery and offline system workflows use the More menu.

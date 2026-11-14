@@ -151,6 +151,42 @@ p {
   font-size: 12px;
   color: #65745d;
 }
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.more-toggle {
+  min-height: 44px;
+  white-space: nowrap;
+}
+.more-toggle.active {
+  background: #293c2b;
+  color: white;
+}
+.more-navigation {
+  position: fixed;
+  inset: 82px max(18px, calc((100vw - 1120px) / 2 + 40px)) auto auto;
+  margin: 0;
+  width: 220px;
+  max-width: calc(100vw - 36px);
+  padding: 8px;
+  border: 1px solid #dce1d2;
+  border-radius: 16px;
+  background: white;
+  box-shadow: 0 8px 40px #1e352026;
+}
+.more-navigation button {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  text-align: left;
+  background: transparent;
+}
+.more-navigation button.active {
+  background: #293c2b;
+  color: white;
+}
 .dot {
   height: 7px;
   width: 7px;
@@ -458,6 +494,19 @@ details .card {
   }
   .brand {
     font-size: 25px;
+  }
+  .brand span:last-child {
+    display: none;
+  }
+  .header-actions {
+    gap: 8px;
+  }
+  .more-toggle {
+    padding: 10px 12px;
+  }
+  .more-navigation {
+    top: 66px;
+    right: 18px;
   }
   .grid {
     grid-template-columns: 1fr;
