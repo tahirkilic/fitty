@@ -10,19 +10,19 @@ The importer operates in the existing static/offline PWA, using the user-supplie
 
 The actual `workout_sessions_merged.json` supplied by the user was inspected in a private local environment, **without committing or uploading the file**.
 
-| Measurement | Actual source |
-| --- | ---: |
-| Schema | 1.0 |
-| Workout sessions | 47 |
-| Plan names | 2 (`Einheit A` 20 sessions; `Ganzkörper` 27) |
-| Distinct exercise names | 27 |
+| Measurement                               |                                   Actual source |
+| ----------------------------------------- | ----------------------------------------------: |
+| Schema                                    |                                             1.0 |
+| Workout sessions                          |                                              47 |
+| Plan names                                |    2 (`Einheit A` 20 sessions; `Ganzkörper` 27) |
+| Distinct exercise names                   |                                              27 |
 | Importable exercise/device identity slots | 28 (repeated `Butterfly machine` kept distinct) |
-| Exercise occurrences | 539 |
-| Recorded sets | 1,557 |
-| Sets with unknown/null weight | 64 |
-| Sets with unknown/null repetitions | 43 |
-| Strength / cardio / isometric occurrences | 506 / 27 / 6 |
-| Source date range | 27.04.2026 to 09.11.2026 |
+| Exercise occurrences                      |                                             539 |
+| Recorded sets                             |                                           1,557 |
+| Sets with unknown/null weight             |                                              64 |
+| Sets with unknown/null repetitions        |                                              43 |
+| Strength / cardio / isometric occurrences |                                    506 / 27 / 6 |
+| Source date range                         |                        27.04.2026 to 09.11.2026 |
 
 Source fixture SHA-256: `542e8f60ef42456b9dc94b0b620962cac2120051a8f706ca854738a1419389bd`. The latest `Einheit A` reference session is 17.06.2026 (9 exercises, 27 sets); latest `Ganzkörper` is 09.11.2026 (14 exercises, 40 sets). All provided set numbers are consecutive from one, and no set is wholly missing a measurement.
 
