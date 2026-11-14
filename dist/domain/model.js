@@ -1,3 +1,4 @@
+import { sessionDay } from "./clever-fit.js";
 export const clone = (value) => structuredClone(value);
 /** @returns {import('../types.js').Data} */
 export const emptyData = () => ({
@@ -39,8 +40,20 @@ export function validateData(data) {
     );
   const values = (v) => {
     invariant(object(v), "Invalid set");
-    number(v.weight);
-    number(v.reps, true);
+    if (v.weight !== null) number(v.weight);
+    if (v.reps !== null) number(v.reps, true);
+    if (v.durationSeconds !== undefined && v.durationSeconds !== null)
+      number(v.durationSeconds);
+    invariant(
+      v.weight !== undefined && v.reps !== undefined,
+      "Missing set measurements",
+    );
+    invariant(
+      v.weight !== null ||
+        v.reps !== null ||
+        (v.durationSeconds !== null && v.durationSeconds !== undefined),
+      "Set must contain a measurement",
+    );
   };
   invariant(object(data), "Invalid data");
   for (const key of ["exercises", "plans", "rotation", "sessions"])
@@ -56,6 +69,20 @@ export function validateData(data) {
   };
   const exerciseIds = ids(data.exercises),
     planIds = ids(data.plans);
+  if (data.cleverFitMappings !== undefined) {
+    invariant(
+      data.cleverFitMappings !== null &&
+        typeof data.cleverFitMappings === "object" &&
+        !Array.isArray(data.cleverFitMappings),
+      "Invalid import mapping table",
+    );
+    for (const [sourceIdentity, exerciseId] of Object.entries(
+      data.cleverFitMappings,
+    )) {
+      str(sourceIdentity, "source mapping");
+      invariant(exerciseIds.has(exerciseId), "Unknown mapped exercise");
+    }
+  }
   ids(data.sessions);
   const display = (e) => {
     str(e.name, "name");
@@ -64,20 +91,34 @@ export function validateData(data) {
       "Invalid machine details",
     );
   };
+  const kind = (e) =>
+    invariant(
+      e.kind === undefined ||
+        ["strength", "cardio", "isometric"].includes(e.kind),
+      "Invalid exercise type",
+    );
+  const source = (e) => {
+    if (e.importSourceKey !== undefined)
+      str(e.importSourceKey, "import identity");
+  };
   for (const e of data.exercises) {
     display(e);
+    kind(e);
+    source(e);
     invariant(typeof e.archived === "boolean", "Invalid archive flag");
   }
   const item = (e) => {
     str(e.id, "item ID");
     invariant(exerciseIds.has(e.exerciseId), "Unknown exercise");
     display(e);
+    kind(e);
     array(e.sets);
     invariant(e.sets.length > 0, "At least one set is required");
     e.sets.forEach(values);
   };
   for (const p of data.plans) {
     str(p.name, "plan name");
+    source(p);
     number(p.version, true);
     invariant(p.version > 0 && typeof p.archived === "boolean", "Invalid plan");
     number(p.rest, true);
@@ -102,12 +143,23 @@ export function validateData(data) {
     str(s.name, "session name");
     invariant(planIds.has(s.planId), "Unknown source plan");
     number(s.planVersion, true);
-    date(s.startedAt);
+    const historical = s.importSource === "clever_fit_json";
+    if (historical) {
+      invariant(
+        typeof s.historicalDate === "string" &&
+          /^\d{4}-\d{2}-\d{2}$/.test(s.historicalDate) &&
+          new Date(s.historicalDate + "T00:00:00Z")
+            .toISOString()
+            .slice(0, 10) === s.historicalDate,
+        "Invalid historical date",
+      );
+      str(s.importSourceKey, "import identity");
+    } else date(s.startedAt);
     invariant(
       s.status === (active ? "active" : "finished"),
       "Invalid session status",
     );
-    if (!active) date(s.finishedAt);
+    if (!active && !historical) date(s.finishedAt);
     number(s.rest, true);
     number(s.warmup);
     invariant(
@@ -152,16 +204,37 @@ export function validateData(data) {
 }
 /** @param {import('../types.js').Data} data */
 export function latestSet(data, exerciseId, index) {
-  const sessions = [...data.sessions].sort((a, b) =>
-    b.finishedAt.localeCompare(a.finishedAt),
-  );
+  const sessions = [...data.sessions].sort((a, b) => {
+    const dateDifference = sessionDay(b).localeCompare(sessionDay(a));
+    if (dateDifference) return dateDifference;
+    // A known completed timestamp wins over unknown-time history on the same day.
+    return (b.finishedAt || "").localeCompare(a.finishedAt || "");
+  });
+  const result = {};
   for (const session of sessions)
     for (const item of [...session.items].reverse()) {
       const set = item.sets[index];
-      if (item.exerciseId === exerciseId && set?.done && !item.skipped)
-        return { weight: set.weight, reps: set.reps, date: session.finishedAt };
+      if (item.exerciseId !== exerciseId || !set?.done || item.skipped)
+        continue;
+      for (const key of ["weight", "reps", "durationSeconds"]) {
+        if (
+          result[key] === undefined &&
+          set[key] !== null &&
+          set[key] !== undefined
+        ) {
+          result[key] = set[key];
+          if (!result.date)
+            result.date = session.historicalDate || session.finishedAt;
+        }
+      }
+      if (
+        result.weight !== undefined &&
+        result.reps !== undefined &&
+        result.durationSeconds !== undefined
+      )
+        return result;
     }
-  return null;
+  return result.date ? result : null;
 }
 /** @param {import('../types.js').PlanItem} item @param {import('../types.js').Data} data @returns {import('../types.js').SessionItem} */
 export function sessionItem(item, data) {
@@ -171,9 +244,14 @@ export function sessionItem(item, data) {
     sets: item.sets.map((target, index) => {
       const previous = latestSet(data, item.exerciseId, index);
       return {
-        ...(previous
-          ? { weight: previous.weight, reps: previous.reps }
-          : target),
+        weight: previous?.weight ?? target.weight,
+        reps: previous?.reps ?? target.reps,
+        ...(target.durationSeconds !== undefined
+          ? {
+              durationSeconds:
+                previous?.durationSeconds ?? target.durationSeconds,
+            }
+          : {}),
         target: clone(target),
         done: false,
         previous: previous?.date || null,
@@ -188,6 +266,7 @@ export const plannedItem = (item) => ({
   name: item.name,
   number: item.number,
   settings: item.settings,
+  ...(item.kind ? { kind: item.kind } : {}),
   sets: item.sets.map((s) => clone(s.target)),
 });
 export function planChanges(session) {

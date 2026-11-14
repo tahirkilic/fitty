@@ -1,0 +1,40 @@
+name: Fitness App verification
+on:
+  push:
+    branches: [feature/clever-fit-import]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Format and persist changes on the migration branch
+        if: github.event_name == 'push'
+        run: |
+          npm run format
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add dist tests *.md package.json .openai/hosting.json
+            git commit -m "style: format Clever Fit migration changes"
+            git push
+          fi
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run check
+      - run: npm test
+      - name: Install browser engines
+        run: npx playwright install --with-deps chromium webkit
+      - name: System test (Chromium + WebKit)
+        run: |
+          python3 -m http.server 4173 --directory dist > /tmp/fitness-http.log 2>&1 &
+          BASE_URL=http://127.0.0.1:4173 npm run test:system

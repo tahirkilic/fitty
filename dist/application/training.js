@@ -76,7 +76,11 @@ export class Training {
       name: e.name,
       number: e.number,
       settings: e.settings,
-      sets: [prescription(), prescription(), prescription()],
+      ...(e.kind ? { kind: e.kind } : {}),
+      sets:
+        e.kind === "cardio" || e.kind === "isometric"
+          ? [{ weight: null, reps: null, durationSeconds: 60 }]
+          : [prescription(), prescription(), prescription()],
     };
   }
   start(id) {
@@ -126,7 +130,10 @@ export class Training {
     });
   }
   target(itemId, index, key, value) {
-    invariant(["weight", "reps"].includes(key), "Unknown target field");
+    invariant(
+      ["weight", "reps", "durationSeconds"].includes(key),
+      "Unknown target field",
+    );
     this.editSession((s) => {
       s.items.find((i) => i.id === itemId).sets[index].target[key] = value;
     });

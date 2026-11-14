@@ -113,18 +113,178 @@ for (const [engine, type] of [
       await page.getByRole("button", { name: "Replace all data" }).click();
       await page.getByText("Backup restored successfully.").waitFor();
       await page.evaluate(() => navigator.serviceWorker.ready);
-      await page.reload();
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
       await context.setOffline(true);
-      await page.reload();
-      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      const offlinePage = await context.newPage();
+      await offlinePage.goto(url);
+      await offlinePage
+        .getByRole("button", { name: "Resume workout ↗" })
+        .click();
       assert.equal(
-        await page
+        await offlinePage
           .getByLabel("Test press set 1 weight", { exact: true })
           .inputValue(),
         "40.5",
       );
       assert(
-        await page.evaluate(
+        await offlinePage.evaluate(
+          () => document.documentElement.scrollWidth <= window.innerWidth,
+        ),
+      );
+    } finally {
+      await browser.close();
+    }
+  });
+
+const cleverFixture = {
+  schema_version: "1.0",
+  workout_sessions: [
+    {
+      date: "2026-04-27",
+      name: "Einheit A",
+      exercises: [
+        {
+          name: "Butterfly machine",
+          type: "strength",
+          sets: [
+            { set_number: 1, reps: 10, weight_kg: 20, duration_seconds: null },
+          ],
+        },
+        {
+          name: "Butterfly machine",
+          type: "strength",
+          sets: [
+            { set_number: 1, reps: 8, weight_kg: 35, duration_seconds: null },
+          ],
+        },
+      ],
+    },
+    {
+      date: "2026-11-09",
+      name: "Ganzkörper",
+      exercises: [
+        {
+          name: "Crosstrainer",
+          type: "cardio",
+          sets: [
+            {
+              set_number: 1,
+              reps: null,
+              weight_kg: null,
+              duration_seconds: 600,
+            },
+          ],
+        },
+        {
+          name: "Low plank",
+          type: "isometric",
+          sets: [
+            {
+              set_number: 1,
+              reps: null,
+              weight_kg: null,
+              duration_seconds: 45,
+            },
+          ],
+        },
+        {
+          name: "Back extension 45 degrees",
+          type: "strength",
+          sets: [
+            {
+              set_number: 1,
+              reps: 10,
+              weight_kg: null,
+              duration_seconds: null,
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  test(`${engine}: Clever Fit file → mappings → 2 editable plans → history → reimport → offline`, async () => {
+    const browser = await type.launch();
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      acceptDownloads: true,
+    });
+    const page = await context.newPage();
+    try {
+      await page.goto(url);
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      const file = {
+        name: "clever-fit.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify(cleverFixture)),
+      };
+      await page.locator("#clever-file").setInputFiles(file);
+      await page
+        .getByText("2 workouts · 5 exercise occurrences · 5 sets")
+        .waitFor();
+      await page
+        .getByRole("button", { name: "Import exercises, 2 plans and history" })
+        .click();
+      await page
+        .getByText(
+          /Clever Fit imported: 5 machines, 2 plans, 2 workouts and 5 sets/,
+        )
+        .waitFor();
+      await page
+        .getByRole("button", { name: "Edit plan", exact: true })
+        .first()
+        .click();
+      await page
+        .getByRole("dialog")
+        .getByText("Butterfly machine")
+        .first()
+        .waitFor();
+      await page.getByRole("button", { name: "Cancel", exact: true }).click();
+      await page.getByRole("button", { name: "History", exact: true }).click();
+      await page.getByText("09.11.2026").waitFor();
+      await page.locator("summary").first().click();
+      await page.getByText("10:00 min").waitFor();
+      await page.getByText("— kg × 10").waitFor();
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      const downloaded = page.waitForEvent("download");
+      await page
+        .getByRole("button", { name: "Download JSON backup ↗" })
+        .click();
+      const fileDownload = await downloaded;
+      const backupFile = await fileDownload.path();
+      await page.locator("#import-file").setInputFiles(backupFile);
+      await page.getByRole("button", { name: "Replace all data" }).click();
+      await page.getByText("Backup restored successfully.").waitFor();
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await page.locator("#clever-file").setInputFiles(file);
+      await page.getByText("2 already imported").waitFor();
+      await page
+        .getByRole("button", { name: "Import exercises, 2 plans and history" })
+        .click();
+      await page
+        .getByText(/0 machines, 0 plans, 0 workouts and 0 sets/)
+        .waitFor();
+      await page.evaluate(() => navigator.serviceWorker.ready);
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
+      await context.setOffline(true);
+      const offlinePage = await context.newPage();
+      await offlinePage.goto(url);
+      await offlinePage
+        .getByRole("button", { name: "History", exact: true })
+        .click();
+      await offlinePage.getByText("09.11.2026").waitFor();
+      assert(
+        await offlinePage.evaluate(
           () => document.documentElement.scrollWidth <= window.innerWidth,
         ),
       );
