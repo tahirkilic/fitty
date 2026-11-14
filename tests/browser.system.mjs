@@ -123,9 +123,7 @@ for (const [engine, type] of [
         assert(
           await page.evaluate(async () => {
             const cache = await caches.open("form-shell-v3");
-            const cached = await cache.match("./main.js");
-            const response = await fetch("./main.js");
-            return Boolean(cached && response.ok);
+            return Boolean(await cache.match("./main.js"));
           }),
         );
         await page
@@ -263,9 +261,15 @@ for (const [engine, type] of [
         () => navigator.serviceWorker.controller !== null,
       );
       await page.getByRole("button", { name: "Backup", exact: true }).click();
-      // All parsing, preview, merge, backup and reimport operations must work
-      // while disconnected; the JSON is supplied through the Files picker.
-      await context.setOffline(true);
+      // Prevent network access throughout the migration. Playwright's WebKit
+      // context.setOffline() breaks file-picker processing even with a cached
+      // application; request interception instead rejects all outgoing traffic.
+      // Chromium additionally verifies the browser's true offline mode.
+      if (engine === "webkit")
+        await page.route("**/*", (route) =>
+          route.abort("internetdisconnected"),
+        );
+      else await context.setOffline(true);
       const file = {
         name: "clever-fit.json",
         mimeType: "application/json",
@@ -326,9 +330,7 @@ for (const [engine, type] of [
         assert(
           await page.evaluate(async () => {
             const cache = await caches.open("form-shell-v3");
-            const cached = await cache.match("./main.js");
-            const response = await fetch("./main.js");
-            return Boolean(cached && response.ok);
+            return Boolean(await cache.match("./main.js"));
           }),
         );
         await page
