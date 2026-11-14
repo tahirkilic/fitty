@@ -1,6 +1,6 @@
 # Iteration 2 — Clever Fit data migration
 
-Status: **Implemented and merged in PR #1; automated verification follow-up in PR #2; physical-iPhone acceptance outstanding**. Updated 14 November 2026.
+Status: **Implemented; PR #1 and verification PR #2 both merged; physical-iPhone acceptance outstanding**. Updated 14 November 2026.
 Source: `workout_sessions_merged.json` (`schema_version: "1.0"`).
 Requirements: migrate exercises/devices, create the editable plans **Einheit A** and **Ganzkörper**, and preserve every historical workout and its recorded values. `AGENTS.md` is mandatory.
 
@@ -63,7 +63,7 @@ The personal source file is supplied to the app by the user through the browser'
 
 ## Iteration 2 verification follow-up (14 November 2026)
 
-The migration implementation is already merged into `main` from [PR #1](https://github.com/tahirkilic/fitty/pull/1). [PR #2](https://github.com/tahirkilic/fitty/pull/2) adds a reliable WebKit offline regression strategy and full-volume tests; it is a separate change that must pass CI and be merged independently.
+The migration implementation was merged into `main` in [PR #1](https://github.com/tahirkilic/fitty/pull/1). The WebKit regression and full-volume verification changes were merged into `main` in [PR #2](https://github.com/tahirkilic/fitty/pull/2) after passing CI.
 
 **Automated checks:** GitHub Actions [successful run #43546688555](https://github.com/tahirkilic/fitty/actions/runs/43546688555) passed formatting, lint, type checks, architecture/syntax checks, unit and integration tests, and the full Chromium + WebKit browser system suite. The synthetic 47-session/539-occurrence/1,557-set dataset is tested through the actual parser and migration use case with detailed value checks, backup round-trip, and re-import idempotence.
 
