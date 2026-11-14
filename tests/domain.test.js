@@ -65,3 +65,31 @@ test("view model exposes recoverable errors and suggested plan", () => {
   vm.editor.name = "Draft only";
   assert.equal(app.data.plans[0].name, "A");
 });
+
+test("F07: exercise disclosure is independent, session-scoped and does not change training data", () => {
+  const data = {
+    active: { id: "session-1", items: [{ id: "press" }, { id: "row" }] },
+  };
+  const before = structuredClone(data);
+  const vm = new ViewModel({ data }, { now: () => 0 });
+  assert(vm.isExerciseOpen("press"));
+  assert(vm.isExerciseOpen("row"));
+  vm.setExerciseOpen("press", false);
+  assert(!vm.isExerciseOpen("press"));
+  assert(vm.isExerciseOpen("row"));
+  vm.tab = "home";
+  vm.tab = "workout";
+  assert(!vm.isExerciseOpen("press"));
+  vm.setExerciseOpen("press", true);
+  assert(vm.isExerciseOpen("press"));
+  vm.setExerciseOpen("press", false);
+  assert.deepEqual(data, before);
+  data.active = { id: "session-2", items: [{ id: "press" }, { id: "row" }] };
+  assert(vm.isExerciseOpen("press"));
+  vm.setExerciseOpen("row", false);
+  assert(vm.isExerciseOpen("press"));
+  assert(!vm.isExerciseOpen("row"));
+  data.active = null;
+  vm.setExerciseOpen("press", false);
+  assert(vm.isExerciseOpen("press"));
+});

@@ -185,7 +185,7 @@ function workout() {
     s.items
       .map(
         (item, index) =>
-          `<section class="card" id="item-${item.id}"><div class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p></div>${button(item.skipped ? "Return" : "Skip", "skip", item.id, "small ghost")}</div><label>Settings for today<input aria-label="${escape(item.name)} settings" data-field="settings" data-id="${item.id}" value="${escape(item.settings)}"></label>${setRows(item)}<div class="row wrap" style="margin-top:18px">${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Replace", "replace", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}${button("Edit targets", "targets", item.id, "ghost")}</div></section>`,
+          `<details class="card workout-exercise" id="item-${item.id}" data-exercise-id="${escape(item.id)}" ${vm.isExerciseOpen(item.id) ? "open" : ""}><summary class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p><p class="muted">${item.sets.filter((set) => set.done).length} of ${item.sets.length} sets completed</p></div><span class="exercise-chevron" aria-hidden="true"></span></summary><div class="exercise-body">${button(item.skipped ? "Return" : "Skip", "skip", item.id, "small ghost")}<label>Settings for today<input aria-label="${escape(item.name)} settings" data-field="settings" data-id="${item.id}" value="${escape(item.settings)}"></label>${setRows(item)}<div class="row wrap" style="margin-top:18px">${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Replace", "replace", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}${button("Edit targets", "targets", item.id, "ghost")}</div></div></details>`,
       )
       .join("") +
     `<section class="card"><label for="session-add">Add an exercise for today</label><select id="session-add" data-action="session-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select></section><div class="row between">${button("Discard workout", "discard", "", "danger")}${button("Review & finish →", "review", "", "dark")}</div>`
@@ -449,9 +449,11 @@ const actions = {
   timer: (action) => app.timer(action),
   warmup: (action) => app.warmup(action),
   jump: (id) => {
-    document
-      .getElementById("item-" + id)
-      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const card = document.getElementById("item-" + id);
+    if (!card) return;
+    vm.setExerciseOpen(id, true);
+    card.open = true;
+    card.scrollIntoView({ behavior: "smooth", block: "start" });
   },
   review: () => {
     vm.review = true;
@@ -490,6 +492,20 @@ const actions = {
     vm.notice = "Backup restored successfully.";
   },
 };
+root.addEventListener(
+  "toggle",
+  (event) => {
+    const card = event.target;
+    if (
+      !vm ||
+      !root.contains(card) ||
+      !card.matches("details[data-exercise-id]")
+    )
+      return;
+    vm.setExerciseOpen(card.dataset.exerciseId, card.open);
+  },
+  true,
+);
 root.addEventListener("click", (event) => {
   const el = event.target.closest("button[data-action]");
   if (!el || !vm) return;
@@ -596,7 +612,7 @@ if (vm) {
       .then(async (registration) => {
         await navigator.serviceWorker.ready;
         const check = async () => {
-          offlineReady = await caches.has("fitty-shell-v6");
+          offlineReady = await caches.has("fitty-shell-v7");
           const status = document.getElementById("offline-state");
           if (status)
             status.textContent = offlineReady

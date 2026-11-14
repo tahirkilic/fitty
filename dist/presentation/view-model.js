@@ -9,6 +9,8 @@ export class ViewModel {
     this.notice = "";
     this.editor = null;
     this.review = false;
+    this.disclosureSessionId = null;
+    this.collapsedExercises = new Set();
     this.importData = null;
     this.cleverSource = null;
     this.cleverChoices = { mappings: {}, references: {} };
@@ -23,6 +25,22 @@ export class ViewModel {
   }
   get rest() {
     return remainingSeconds(this.data.active?.restUntil, this.clock.now());
+  }
+  isExerciseOpen(id) {
+    return (
+      this.disclosureSessionId !== this.data.active?.id ||
+      !this.collapsedExercises.has(id)
+    );
+  }
+  setExerciseOpen(id, open) {
+    const session = this.data.active;
+    if (!session?.items.some((item) => item.id === id)) return;
+    if (this.disclosureSessionId !== session.id) {
+      this.disclosureSessionId = session.id;
+      this.collapsedExercises.clear();
+    }
+    if (open) this.collapsedExercises.delete(id);
+    else this.collapsedExercises.add(id);
   }
   run(action) {
     try {

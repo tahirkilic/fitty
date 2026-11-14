@@ -75,6 +75,29 @@ for (const [engine, type] of [
         .first()
         .click();
       await page.getByText("Machine 27", { exact: true }).waitFor();
+      const card = page.locator("details.workout-exercise").first();
+      const summary = card.locator("summary");
+      const weight = page.getByLabel("Test press set 1 weight", {
+        exact: true,
+      });
+      assert(await weight.isVisible());
+      await summary.click();
+      await weight.waitFor({ state: "hidden" });
+      assert(await summary.getByText("0 of 3 sets completed").isVisible());
+      await page.getByRole("button", { name: "Restart", exact: true }).click();
+      assert(!(await weight.isVisible()));
+      await page.getByRole("button", { name: "Home", exact: true }).click();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert(!(await weight.isVisible()));
+      await summary.focus();
+      await page.keyboard.press("Enter");
+      await weight.waitFor({ state: "visible" });
+      await page.keyboard.press("Space");
+      await weight.waitFor({ state: "hidden" });
+      await page
+        .locator("#jump-exercise")
+        .selectOption({ label: "Test press" });
+      await weight.waitFor({ state: "visible" });
       await page
         .getByRole("button", { name: "Exercises", exact: true })
         .click();
@@ -96,6 +119,12 @@ for (const [engine, type] of [
         .getByRole("button", { name: "○", exact: true })
         .first()
         .click();
+      await summary.getByText("1 of 3 sets completed").waitFor();
+      await summary.click();
+      await weight.waitFor({ state: "hidden" });
+      assert(
+        await summary.getByText("Machine 27", { exact: true }).isVisible(),
+      );
       await page.reload();
       await page.getByRole("button", { name: "Resume workout ↗" }).click();
       assert.equal(
@@ -198,7 +227,7 @@ for (const [engine, type] of [
         // Keep the browser genuinely offline and verify cache plus UI writes.
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v6");
+            const cache = await caches.open("fitty-shell-v7");
             return Boolean(await cache.match("./main.js"));
           }),
         );
@@ -411,7 +440,7 @@ for (const [engine, type] of [
       if (engine === "webkit") {
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v6");
+            const cache = await caches.open("fitty-shell-v7");
             return Boolean(await cache.match("./main.js"));
           }),
         );
