@@ -493,6 +493,10 @@ for (const [engine, type] of [
       await page.getByText("09.11.2026").waitFor();
       await page.locator("summary").first().click();
       await page.getByText("10:00 min").waitFor();
+      await assertHistoryActionPlacement(
+        page,
+        page.locator("details[open][data-session-id]"),
+      );
       const bodyweight = page.getByRole("table", {
         name: "Back extension 45 degrees set results",
       });
@@ -1182,6 +1186,7 @@ for (const [engine, type] of [
         `[data-session-id="${before.sessions[1].id}"]`,
       );
       await entry.locator("summary").click();
+      await assertHistoryActionPlacement(page, entry);
       const message =
         "Delete “B” from 12.11.2026? This permanently removes its recorded results.";
       await answerConfirmation(
@@ -1253,3 +1258,23 @@ for (const [engine, type] of [
       await browser.close();
     }
   });
+
+async function assertHistoryActionPlacement(page, entry) {
+  for (const width of [320, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    const count = await entry.locator(".history-actions p").boundingBox();
+    const button = await entry
+      .getByRole("button", { name: "Delete workout", exact: true })
+      .boundingBox();
+    assert(count.x + count.width <= button.x);
+    assert(
+      Math.abs(count.y + count.height / 2 - button.y - button.height / 2) < 1,
+    );
+    assert(button.height >= 44);
+    assert(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth <= window.innerWidth,
+      ),
+    );
+  }
+}

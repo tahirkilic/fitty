@@ -228,7 +228,7 @@ function history() {
       .sort((a, b) => sessionDay(b).localeCompare(sessionDay(a)))
       .map(
         (s) =>
-          `<details class="card" data-session-id="${escape(s.id)}"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map(historyExercise).join("")}<div style="margin-top:20px">${button("Delete workout", "delete-session", s.id, "danger")}</div></details>`,
+          `<details class="card" data-session-id="${escape(s.id)}"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary>${s.importSource ? '<p class="muted" style="margin-top:15px">Imported from Clever Fit · Original time unknown</p>' : ""}<div class="row between history-actions"><p class="muted">${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${button("Delete workout", "delete-session", s.id, "small danger")}</div>${s.items.map(historyExercise).join("")}</details>`,
       )
       .join("") +
     (!vm.data.sessions.length

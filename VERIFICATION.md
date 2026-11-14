@@ -75,3 +75,7 @@ All 36 unit/integration tests, five Chromium workflows and code checks passed. B
 ## Delete individual history entries — 14 November 2026
 
 All 38 unit/integration tests and six Chromium workflows passed. Application coverage verifies deletion persistence, backup round trips, remaining-history/default prefilling, active/unknown ID rejection and atomic failure. Browser coverage verifies confirmation/cancel, visible save failure and retry, preservation of unrelated data, reload and empty-history display. Version, syntax/architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.
+
+## History action placement — 14 November 2026
+
+All 38 unit/integration tests, six Chromium workflows and code checks passed. Regular and imported history entries place Delete workout to the right of the set count with aligned centers, a minimum 44px touch height and no horizontal overflow at 320px/390px widths. Existing confirmation, failure/retry and persistence tests still pass. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.

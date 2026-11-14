@@ -297,3 +297,7 @@ Status: first functional preview implemented; release verification remains open.
 
 - F09 (dependencies: F05/F08): expanded history entries offer Delete workout. A confirmation names the workout/date; cancellation does not mutate data. Confirmed deletion persists atomically, with a visible error on failed storage writes. Other history, plans, catalog, rotation and active session remain unchanged. Future previous-result prefilling ignores deleted sessions, falling back to remaining history or plan defaults. Deleting the final entry shows the empty history state.
 - Coverage: application integration covers removal/reload/backup, fallback prefilling, active-session preservation, unknown/active IDs and failed writes. Chromium/WebKit system coverage verifies confirmation/cancel, visible save failure and retry, remaining entries, reload, empty state and retained active workout.
+
+## History action placement · 14 November 2026
+
+- F09: Delete workout is right-aligned beside the recorded-set count, above exercise results. Imported-workout provenance stays on a separate line. Chromium/WebKit history workflows check horizontal placement, vertical alignment, 44px touch height and no horizontal overflow at 320px/390px widths for regular and imported workouts. Deletion confirmation behavior is unchanged.
