@@ -75,7 +75,6 @@ export class Training {
       exerciseId: e.id,
       name: e.name,
       number: e.number,
-      settings: e.settings,
       ...(e.kind ? { kind: e.kind } : {}),
       sets:
         e.kind === "cardio" || e.kind === "isometric"
@@ -125,11 +124,6 @@ export class Training {
         "This exercise has recorded sets. Undo completion before skipping.",
       );
       item.skipped = !item.skipped;
-    });
-  }
-  settings(itemId, value) {
-    this.editSession((s) => {
-      s.items.find((i) => i.id === itemId).settings = value;
     });
   }
   target(itemId, index, key, value) {

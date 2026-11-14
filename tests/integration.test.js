@@ -10,7 +10,7 @@ import { setup, seed } from "./fixtures.js";
 test("F01/F02: catalog identity, archival and save failure preserve data", () => {
   const { app, storage, reopen } = setup();
   const { a, exercise } = seed(app);
-  app.exercise({ name: "Chest press", number: "13", settings: "" });
+  app.exercise({ name: "Chest press", number: "13" });
   assert.notEqual(app.data.exercises[0].id, app.data.exercises[1].id);
   app.archiveExercise(exercise);
   app.start(a);
@@ -104,19 +104,14 @@ test("F07/F08: session edit safeguards and selected plan updates preserve histor
   const added = app.data.active.items[1].id;
   app.move(added, -1);
   app.editSession((s) => {
-    s.items[1].settings = "Seat 2";
     s.items[1].sets[0].target.weight = 25;
   });
   app.set(first, 0, { weight: 99 });
   app.finish(["structure", first]);
-  assert.equal(app.data.plans[0].items[1].settings, "Seat 2");
   assert.equal(app.data.plans[0].items[1].sets[0].weight, 25);
   assert.equal(app.data.sessions[0].items[1].sets[0].weight, 99);
   assert.equal(app.data.sessions[0].items[0].skipped, true);
-  app.exercise(
-    { name: "Changed catalog", number: "100", settings: "Changed" },
-    exercise,
-  );
+  app.exercise({ name: "Changed catalog", number: "100" }, exercise);
   assert.equal(app.data.sessions[0].items[1].name, "Chest press");
 });
 test("F08: conflicts do not overwrite newer plans or lose active results", () => {
@@ -124,7 +119,7 @@ test("F08: conflicts do not overwrite newer plans or lose active results", () =>
     { a } = seed(app);
   app.start(a);
   app.editSession((s) => {
-    s.items[0].settings = "Different";
+    s.items[0].sets[0].target.weight = 25;
   });
   app.plan({ name: "New plan", rest: 22, items: [] }, a);
   assert.throws(() => app.finish([app.data.active.items[0].id]), /changed/);
@@ -157,9 +152,9 @@ test("F01: two open windows cannot silently overwrite each other; unknown schema
   const { app, storage, reopen } = setup();
   seed(app);
   const other = reopen();
-  app.exercise({ name: "New", number: "", settings: "" });
+  app.exercise({ name: "New", number: "" });
   assert.throws(
-    () => other.exercise({ name: "Lost", number: "", settings: "" }),
+    () => other.exercise({ name: "Lost", number: "" }),
     /another window/,
   );
   storage.setItem(
@@ -224,7 +219,6 @@ test("F05/F09/F10: timed cardio remains a regular exercise through recovery, his
     name: "Cross trainer",
     kind: "cardio",
     number: "7",
-    settings: "Level 3",
   });
   const exercise = app.data.exercises[0];
   app.plan({ name: "Cardio", rest: 0, items: [app.makeItem(exercise.id)] });

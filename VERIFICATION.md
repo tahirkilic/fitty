@@ -10,9 +10,9 @@
 | F04   | Rotation, manual start, resume, explicit discard                             | integration: rotation, snapshot and recovery                                   | Browser recovery                                          |
 | F05   | Cross-plan prefill, fallback, completion/undo, set changes                   | integration: per-set prior results, fallback, reload                           | Browser interaction                                       |
 | F06   | Timestamp rest; restart/skip                                                 | unit timestamp math; integration controlled clock                              | Backgrounding on iPhone                                   |
-| F07   | Jump, defer/reorder, skip, add/remove/replace, settings/targets              | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
+| F07   | Jump, defer/reorder, skip, add/remove/replace, targets                       | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
 | F08   | Partial finish; before/after review; opt-in plan updates; conflict refusal   | unit plan diffs; integration partial finish, conflict, selective changes       | Browser checkbox workflow                                 |
-| F09   | Historical names/settings/results, previous source dates                     | integration: catalog edits preserve history                                    | Browser history display                                   |
+| F09   | Historical names/results, previous source dates                              | integration: catalog edits preserve history                                    | Browser history display                                   |
 | F10   | Versioned offline export, preview/confirm restore, boundary validation       | integration: round trip, malformed/reference/version rejection, failed restore | iOS Files download/upload                                 |
 | F11   | Source, instructions, managed hosted preview                                 | Source checks and above suites                                                 | Browser suites and real device release checklist below    |
 
@@ -41,3 +41,7 @@ Validation for this change: all 33 unit/integration tests and all three Chromium
 ## Regular timed exercises — 14 November 2026
 
 All 34 unit/integration tests and all three Chromium system workflows passed. Timed cardio retains standard per-set logging, recovery, previous-duration prefilling, history and backup coverage. A backup created with the previous release was restored, reloaded, exported and completed successfully without losing existing records or measurements. Version, syntax, architecture, lint, type and formatting checks passed. WebKit remains blocked by the missing host libraries listed above; real iPhone checks were not run.
+
+## Exercise records and plan review — 14 November 2026
+
+All 35 unit/integration tests and three Chromium system workflows passed. Catalog forms expose name and number; workout cards expose per-set measurements. Preserved metadata is excluded from plan-change comparisons. A previous-release backup restored, reloaded and exported unchanged, with no false plan changes and no changes to completed history. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.

@@ -42,7 +42,6 @@ test("F08: actual results and skips are not prescription changes", () => {
   app.complete(id, 0);
   assert.deepEqual(app.changes(), []);
   app.editSession((s) => {
-    s.items[0].settings = "Seat 2";
     s.items[0].sets[0].target.weight = 30;
   });
   assert.equal(planChanges(app.data.active).length, 1);
@@ -95,4 +94,22 @@ test("F07: exercise cards start collapsed and keep independent, session-scoped s
   data.active = null;
   vm.setExerciseOpen("press", true);
   assert(!vm.isExerciseOpen("press"));
+});
+
+test("F08: preserved metadata never creates spurious plan changes", () => {
+  const { app } = setup(),
+    { a } = seed(app);
+  app.start(a);
+  app.editSession((session) => {
+    session.base[0].annotation = "Historical metadata";
+    session.items[0].annotation = "Historical metadata";
+  });
+  const before = structuredClone(app.data);
+  assert.deepEqual(app.changes(), []);
+  assert.deepEqual(app.data, before);
+  app.target(app.data.active.items[0].id, 0, "weight", 30);
+  const changes = app.changes();
+  assert.equal(changes.length, 1);
+  assert.equal(changes[0].before, "0 kg × 10, 0 kg × 10, 0 kg × 10");
+  assert.equal(changes[0].after, "30 kg × 10, 0 kg × 10, 0 kg × 10");
 });

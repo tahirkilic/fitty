@@ -22,7 +22,7 @@ The personal source file is supplied to the app by the user through the browser'
 | Timed isometric occurrences                                            |                       6 |
 | First/last dates                                                       | 2026-04-27 / 2026-11-09 |
 
-`Einheit A` uses the latest 2026-06-17 session (9 exercise occurrences) as the default editable plan template; `Ganzkörper` uses the latest 2026-11-09 session (14 exercise occurrences). Other reference workouts can be selected during import. The source does not contain machine numbers, machine settings, plan rest times, or actual clock times; these remain unknown/blank and the plan rest time is an explicit editable default (90s).
+`Einheit A` uses the latest 2026-06-17 session (9 exercise occurrences) as the default editable plan template; `Ganzkörper` uses the latest 2026-11-09 session (14 exercise occurrences). Other reference workouts can be selected during import. The source does not contain machine numbers, plan rest times, or actual clock times; these remain unknown/blank and the plan rest time is an explicit editable default (90s).
 
 ## Story status and acceptance criteria
 

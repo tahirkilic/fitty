@@ -10,7 +10,6 @@ export interface Machine {
   importSourceKey?: string;
   name: string;
   number: string;
-  settings: string;
   archived: boolean;
 }
 export interface PlanItem {
@@ -19,7 +18,6 @@ export interface PlanItem {
   exerciseId: string;
   name: string;
   number: string;
-  settings: string;
   sets: Values[];
 }
 export interface LoggedSet extends Values {

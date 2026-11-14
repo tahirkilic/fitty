@@ -86,10 +86,7 @@ export function validateData(data) {
   ids(data.sessions);
   const display = (e) => {
     str(e.name, "name");
-    invariant(
-      typeof e.number === "string" && typeof e.settings === "string",
-      "Invalid machine details",
-    );
+    invariant(typeof e.number === "string", "Invalid machine details");
   };
   const kind = (e) =>
     invariant(
@@ -254,19 +251,26 @@ export function sessionItem(item, data) {
     }),
   };
 }
+/** @param {import('../types.js').PlanItem} item @param {import('../types.js').Values[]} sets @returns {import('../types.js').PlanItem} */
+function exercisePrescription(item, sets) {
+  return {
+    id: item.id,
+    exerciseId: item.exerciseId,
+    name: item.name,
+    number: item.number,
+    ...(item.kind ? { kind: item.kind } : {}),
+    sets: clone(sets),
+  };
+}
 /** @param {import('../types.js').SessionItem} item @returns {import('../types.js').PlanItem} */
-export const plannedItem = (item) => ({
-  id: item.id,
-  exerciseId: item.exerciseId,
-  name: item.name,
-  number: item.number,
-  settings: item.settings,
-  ...(item.kind ? { kind: item.kind } : {}),
-  sets: item.sets.map((s) => clone(s.target)),
-});
+export const plannedItem = (item) =>
+  exercisePrescription(
+    item,
+    item.sets.map((set) => set.target),
+  );
 export function planChanges(session) {
   const items = session.items.map(plannedItem),
-    base = session.base;
+    base = session.base.map((item) => exercisePrescription(item, item.sets));
   const changes = [];
   if (
     JSON.stringify(items.map((i) => i.id)) !==
@@ -291,7 +295,13 @@ export function planChanges(session) {
   return changes;
 }
 function describe(i) {
-  return `${i.sets.map((s) => `${s.weight} kg × ${s.reps}`).join(", ")} · ${i.settings || "No settings"}`;
+  return i.sets
+    .map((s) =>
+      i.kind === "cardio" || i.kind === "isometric"
+        ? `${s.durationSeconds} seconds`
+        : `${s.weight} kg × ${s.reps}`,
+    )
+    .join(", ");
 }
 export function remainingSeconds(until, now) {
   return until ? Math.max(0, Math.ceil((until - now) / 1000)) : 0;

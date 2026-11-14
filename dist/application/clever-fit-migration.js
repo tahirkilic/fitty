@@ -177,7 +177,6 @@ export class CleverFitMigration {
           id,
           name: identity.label,
           number: "",
-          settings: "",
           archived: false,
           kind: identity.type,
           importSourceKey: catalogKey(identity.key),
@@ -195,7 +194,6 @@ export class CleverFitMigration {
           exerciseId: machine.id,
           name: exercise.name,
           number: machine.number,
-          settings: machine.settings,
           kind: exercise.type,
           sets: exercise.sets.map((set) => ({
             weight: set.weightKg,

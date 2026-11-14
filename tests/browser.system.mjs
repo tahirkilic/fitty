@@ -53,7 +53,11 @@ for (const [engine, type] of [
       await page.getByRole("button", { name: "+ Add exercise" }).click();
       await page.locator("#exercise-name").fill("Test press");
       await page.locator("#exercise-number").fill("12");
-      await page.locator("#exercise-settings").fill("Seat 4");
+      assert.equal(await page.getByRole("dialog").locator("input").count(), 2);
+      assert.equal(
+        await page.getByRole("dialog").locator("textarea").count(),
+        0,
+      );
       await page.getByRole("button", { name: "Save machine" }).click();
       await page.getByRole("button", { name: "Plans", exact: true }).click();
       await page.getByRole("button", { name: "+ New plan" }).click();
@@ -83,6 +87,7 @@ for (const [engine, type] of [
       await page.getByText("Machine 27", { exact: true }).waitFor();
       const card = page.locator("details.workout-exercise").first();
       const summary = card.locator("summary");
+      assert.equal(await card.locator("input").count(), 6);
       const weight = page.getByLabel("Test press set 1 weight", {
         exact: true,
       });

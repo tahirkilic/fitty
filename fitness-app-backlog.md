@@ -12,7 +12,7 @@ Confirmed requirements:
 - Training works offline after initial setup.
 - Any number of plans and exercises; support rotation through two or three plans.
 - Each set has its own weight and repetitions. Both prefill from the exercise's last appearance in any plan.
-- Show exercise/machine name, machine number, and machine settings.
+- Show exercise/machine name and machine number.
 - One configurable rest duration per plan.
 - Reorder, defer, skip, replace, add, and remove exercises during a session.
 - At session end, choose which changes update the original plan.
@@ -30,7 +30,6 @@ These are implementation defaults, not additional user-confirmed requirements.
 - An exercise record identifies a specific exercise/machine. Different machines with the same name have different IDs.
 - Previous values come only from completed sets in finished sessions, matched by exercise ID and set position. Skipped or unfinished sets do not replace previous results.
 - For a new exercise or extra set with no matching history, use plan defaults. Show the source/date of previous values.
-- Machine settings are free text initially. Session snapshots preserve the settings used that day.
 - Starting another workout while one is active offers resume or explicit discard.
 - Complete a partial workout with unfinished exercises marked skipped. Discarding a workout does not advance rotation.
 - Normal completion advances rotation. Choosing a different plan manually makes the following plan in the rotation next.
@@ -44,7 +43,7 @@ These are implementation defaults, not additional user-confirmed requirements.
 1. Open Home; resume an active session or see the next suggested plan.
 2. Start that plan or choose another. Create an independent session snapshot.
 3. Open the exercise you want to log; timed cardio uses regular exercise cards.
-4. See ordered exercises, machine number/settings, and prefilled per-set values.
+4. See ordered exercises, machine number, and prefilled per-set values.
 5. Adjust values and complete sets; each completion starts the rest countdown.
 6. Tap a collapsed exercise header to open another machine or defer an exercise. Skipping for today remains distinct from deleting it from the plan.
 7. Finish; review actual results and a separate list of proposed plan changes.
@@ -68,7 +67,7 @@ Dependencies: none.
 
 Acceptance criteria:
 
-- Create/edit a record with name, optional machine number, and settings.
+- Create/edit a record with name and optional machine number.
 - Select the same record in multiple plans; similarly named machines can remain separate.
 - Archive referenced records without breaking plans or history.
 
@@ -136,7 +135,7 @@ Dependencies: F05.
 Acceptance criteria:
 
 - Finish a complete or partial session; identify unfinished work before saving.
-- Show a readable before/after review of changes eligible for the plan: exercises, order, set structure, initial values, and settings.
+- Show a readable before/after review of changes eligible for the plan: exercises, order, set structure, initial values.
 - Apply selected changes or none. Actual reps/weights and temporary skips do not silently become plan prescriptions.
 - Preserve completed session results regardless of selected plan updates.
 - If the source plan changed during the workout, do not silently overwrite newer changes; offer to keep session only or resolve the changes.
@@ -147,8 +146,8 @@ Dependencies: F07.
 
 Acceptance criteria:
 
-- List sessions by date and show exercise names, machine settings, completed/skipped status, per-set results, including timed exercises.
-- Preserve historical names/settings even after catalog or plan changes.
+- List sessions by date and show exercise names, completed/skipped status, per-set results, including timed exercises.
+- Preserve historical names even after catalog or plan changes.
 - Show the previous results from the relevant exercise during training.
 
 Dependencies: F08.
@@ -190,7 +189,7 @@ Each implementation task should reference its story ID, include its acceptance c
 
 ## Data model boundaries
 
-- Exercise/machine: stable identity, current name/number/settings, archive state.
+- Exercise/machine: stable identity, current name/number, archive state.
 - Plan: stable ID and version, ordered exercise prescriptions, rest duration.
 - Rotation: ordered plan IDs and next position.
 - Session: source plan/version, immutable starting snapshot, mutable session contents, start/end timestamps and status.
@@ -212,7 +211,7 @@ Status: first functional preview implemented; release verification remains open.
 - F01–F10: implementation present in `dist/`, with the coverage mapping and remaining checks in `VERIFICATION.md`. Do not treat these stories as accepted until their browser/device checks pass.
 - Increment 1: schema/local repository, machine catalog, plan editor, and early versioned backup path implemented.
 - Increment 2: rotation, independent snapshots, cross-plan prefill, persistent set logging implemented.
-- Increment 3: timestamp timers, session editing, selective target/settings/structure updates, conflict protection implemented.
+- Increment 3: timestamp timers, session editing, selective target/structure updates, conflict protection implemented.
 - Increment 4: history and validated replacement import implemented.
 - Automated validation: 13 unit/integration tests passing; syntax/boundary/offline-asset checks, TypeScript inner-layer checks, ESLint and Prettier passing. Browser system suite added for Chromium and WebKit, not run in this workspace because the preview relay is unavailable.
 - F11 remains open: real iPhone installation/offline/lifecycle/file flows, full browser verification, release acceptance.
@@ -231,7 +230,7 @@ Status: first functional preview implemented; release verification remains open.
 
 ## Current machine numbers in new workouts · 14 November 2026
 
-- F02/F04/F09: starting a workout resolves each machine number from the catalog by exercise ID, including cleared numbers and existing/imported plans. The session baseline uses the same number, avoiding false plan-update suggestions. Existing plans, active sessions, history, settings, targets and previous-result prefilling retain their behavior.
+- F02/F04/F09: starting a workout resolves each machine number from the catalog by exercise ID, including cleared numbers and existing/imported plans. The session baseline uses the same number, avoiding false plan-update suggestions. Existing plans, active sessions, history, targets and previous-result prefilling retain their behavior.
 - Regression mapping: `tests/integration.test.js` covers persistence/reopening, another plan, cleared numbers, immutable active/history snapshots and no unintended plan changes. `tests/browser.system.mjs` covers catalog edits after plan creation, a new workout, an edit during an active workout, history and the following workout in Chromium/WebKit.
 - Local validation: regression failed with the old behavior, then all 22 unit/integration tests and syntax/architecture, TypeScript, ESLint and formatting checks passed with the fix. Browser validation runs in GitHub CI; physical iPhone verification remains open.
 
@@ -259,3 +258,8 @@ Status: first functional preview implemented; release verification remains open.
 
 - F05/F09/F10 (dependencies: F04): cross-trainer duration uses the regular exercise card and per-set duration workflow. Rest countdowns remain under F06. Session/history summaries only show exercise results.
 - Coverage: integration verifies timed cardio logging, recovery, history, export/import and previous-duration prefilling; Chromium/WebKit workflows cover the imported cardio card and saved duration. Existing version-1 backups and saved sessions remain readable without changing the storage key or schema.
+
+## Exercise records and plan review · 14 November 2026
+
+- F02/F07/F08/F09 (dependencies: F05): machine forms contain name and number; workout cards expose per-set measurements and session actions. Plan review compares exercise selection, order and prescribed measurements. Historical records and version-1 backups remain readable.
+- Coverage: catalog/workout browser flows verify the remaining inputs; domain regression verifies preserved metadata creates no plan-change suggestions and target edits have clear before/after values.

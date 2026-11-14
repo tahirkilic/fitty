@@ -55,7 +55,7 @@ Every implemented feature and bug fix must have automated coverage at the approp
 ## Current product constraints
 
 - Build an offline-capable web app for iPhone use, with local data and file export/import.
-- Support rotating plans, per-set weights and repetitions, machine numbers/settings, timed cardio exercises, rest timing, and flexible exercise order/skipping.
+- Support rotating plans, per-set weights and repetitions, machine numbers, timed cardio exercises, rest timing, and flexible exercise order/skipping.
 - Prefill weights and repetitions from the same exercise/machine's last completed appearance across any plan.
 - Keep session changes separate from plan changes; selectively apply approved changes to the plan and preserve historical sessions.
 - Defer iCloud and automatic AI data access. Do not introduce a backend or in-app AI coaching without a new requirement.

@@ -84,7 +84,7 @@ test("CF03: repeated exercise occurrences have distinct stable catalog identitie
 
 test("CF03–CF07: one atomic merge creates devices, two usable plans and date-only history", () => {
   const { app, reopen, clock } = setup();
-  app.exercise({ name: "Rowing machine", number: "12", settings: "Seat 4" });
+  app.exercise({ name: "Rowing machine", number: "12" });
   app.plan({ name: "Ganzkörper", rest: 0, items: [] });
   const oldPlan = structuredClone(app.data.plans[0]);
   const oldMachine = structuredClone(app.data.exercises[0]);
@@ -168,7 +168,6 @@ test("CF03/CF05: an explicitly mapped alias survives reimport and backup restore
   app.exercise({
     name: "My shoulder machine",
     number: "42",
-    settings: "Seat 3",
   });
   const input = parsed();
   const identity = catalogIdentities(input.sessions).find(

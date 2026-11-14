@@ -113,7 +113,7 @@ function catalog() {
       "One record per machine. Shared across all your plans.",
       button("+ Add exercise", "exercise", "", "dark"),
     ) +
-    `<section class="card">${vm.data.exercises.map((e) => `<div class="list-row"><span class="num">${escape(e.number || "↗")}</span><div class="grow"><h3>${escape(e.name)}</h3><p class="muted">${escape(e.settings || "No machine settings")} ${e.archived ? "· Archived" : ""}</p></div>${button("Edit", "exercise", e.id, "small ghost")}</div>`).join("") || '<p class="empty">Add your first exercise or machine. Give similar machines different numbers.</p>'}</section>`
+    `<section class="card">${vm.data.exercises.map((e) => `<div class="list-row"><span class="num">${escape(e.number || "↗")}</span><div class="grow"><h3>${escape(e.name)}</h3>${e.archived ? '<p class="muted">Archived</p>' : ""}</div>${button("Edit", "exercise", e.id, "small ghost")}</div>`).join("") || '<p class="empty">Add your first exercise or machine. Give similar machines different numbers.</p>'}</section>`
   );
 }
 function plans() {
@@ -189,7 +189,7 @@ function workout() {
     s.items
       .map(
         (item, index) =>
-          `<details class="card workout-exercise" id="item-${item.id}" data-exercise-id="${escape(item.id)}" ${vm.isExerciseOpen(item.id) ? "open" : ""}><summary class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p><p class="muted">${item.sets.filter((set) => set.done).length} of ${item.sets.length} sets completed</p></div><span class="exercise-chevron" aria-hidden="true"></span></summary><div class="exercise-body">${button(item.skipped ? "Return" : "Skip", "skip", item.id, "small ghost")}<label>Settings for today<input aria-label="${escape(item.name)} settings" data-field="settings" data-id="${item.id}" value="${escape(item.settings)}"></label>${setRows(item)}<div class="row wrap" style="margin-top:18px">${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Replace", "replace", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}${button("Edit targets", "targets", item.id, "ghost")}</div></div></details>`,
+          `<details class="card workout-exercise" id="item-${item.id}" data-exercise-id="${escape(item.id)}" ${vm.isExerciseOpen(item.id) ? "open" : ""}><summary class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p><p class="muted">${item.sets.filter((set) => set.done).length} of ${item.sets.length} sets completed</p></div><span class="exercise-chevron" aria-hidden="true"></span></summary><div class="exercise-body">${button(item.skipped ? "Return" : "Skip", "skip", item.id, "small ghost")}${setRows(item)}<div class="row wrap" style="margin-top:18px">${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Replace", "replace", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}${button("Edit targets", "targets", item.id, "ghost")}</div></div></details>`,
       )
       .join("") +
     `<section class="card"><label for="session-add">Add an exercise for today</label><select id="session-add" data-action="session-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select></section><div class="row between">${button("Discard workout", "discard", "", "danger")}${button("Review & finish →", "review", "", "dark")}</div>`
@@ -214,7 +214,7 @@ function historySets(item) {
     .join("")}</tbody></table>`;
 }
 function historyExercise(item) {
-  return `<section class="history-exercise"><h3>${escape(item.name)}${item.number ? ` · #${escape(item.number)}` : ""}</h3>${item.settings ? `<p class="muted">${escape(item.settings)}</p>` : ""}${item.skipped ? '<p class="history-unfinished">Skipped</p>' : ""}${historySets(item)}</section>`;
+  return `<section class="history-exercise"><h3>${escape(item.name)}${item.number ? ` · #${escape(item.number)}` : ""}</h3>${item.skipped ? '<p class="history-unfinished">Skipped</p>' : ""}${historySets(item)}</section>`;
 }
 function history() {
   return (
@@ -246,7 +246,7 @@ function backup() {
 }
 function planModal() {
   const p = vm.editor;
-  return `<h2>${p.id ? "Edit plan" : "Create a plan"}</h2><label for="plan-name">Plan name</label><input id="plan-name" value="${escape(p.name)}" data-field="plan-name" placeholder="e.g. Upper body A"><label for="plan-rest">Rest between sets (seconds, 0 to disable)</label><input id="plan-rest" type="number" min="0" step="1" value="${p.rest}" data-field="plan-rest">${p.items.map((i, index) => `<section class="card" style="margin-top:18px"><div class="row between"><h3>${escape(i.name)}</h3><div class="row">${button("↑", "plan-up", i.id, "small ghost")}${button("×", "plan-remove", i.id, "small ghost")}</div></div><label>Machine settings<input data-field="plan-settings" data-id="${i.id}" value="${escape(i.settings)}"></label>${setRows(i, true)}<div style="margin-top:12px">${button("+ Set", "plan-add-set", i.id, "ghost")}</div></section>`).join("")}<label for="plan-add">Add an exercise</label><select id="plan-add" data-action="plan-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select>${!vm.data.exercises.some((e) => !e.archived) ? '<p class="muted">Add machines in Exercises first.</p>' : ""}<footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Save plan", "save-plan", "", "dark")}</footer>`;
+  return `<h2>${p.id ? "Edit plan" : "Create a plan"}</h2><label for="plan-name">Plan name</label><input id="plan-name" value="${escape(p.name)}" data-field="plan-name" placeholder="e.g. Upper body A"><label for="plan-rest">Rest between sets (seconds, 0 to disable)</label><input id="plan-rest" type="number" min="0" step="1" value="${p.rest}" data-field="plan-rest">${p.items.map((i, index) => `<section class="card" style="margin-top:18px"><div class="row between"><h3>${escape(i.name)}</h3><div class="row">${button("↑", "plan-up", i.id, "small ghost")}${button("×", "plan-remove", i.id, "small ghost")}</div></div>${setRows(i, true)}<div style="margin-top:12px">${button("+ Set", "plan-add-set", i.id, "ghost")}</div></section>`).join("")}<label for="plan-add">Add an exercise</label><select id="plan-add" data-action="plan-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select>${!vm.data.exercises.some((e) => !e.archived) ? '<p class="muted">Add machines in Exercises first.</p>' : ""}<footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Save plan", "save-plan", "", "dark")}</footer>`;
 }
 let exerciseEditor = null,
   replaceId = null,
@@ -255,7 +255,7 @@ function modal() {
   if (vm.editor) return planModal();
   if (exerciseEditor) {
     const e = exerciseEditor;
-    return `<h2>${e.id ? "Edit machine" : "Add an exercise"}</h2><label>Name<input id="exercise-name" value="${escape(e.name)}" placeholder="e.g. Chest press"></label><label>Machine number<input id="exercise-number" value="${escape(e.number)}" placeholder="e.g. 12"></label><label>Machine settings<textarea id="exercise-settings" placeholder="Seat 4 · backrest 2">${escape(e.settings)}</textarea></label><footer class="row wrap">${button("Cancel", "close", "", "ghost")}${e.id ? button("Archive", "archive-exercise", e.id, "ghost") : ""}${button("Save machine", "save-exercise", "", "dark")}</footer>`;
+    return `<h2>${e.id ? "Edit machine" : "Add an exercise"}</h2><label>Name<input id="exercise-name" value="${escape(e.name)}" placeholder="e.g. Chest press"></label><label>Machine number<input id="exercise-number" value="${escape(e.number)}" placeholder="e.g. 12"></label><footer class="row wrap">${button("Cancel", "close", "", "ghost")}${e.id ? button("Archive", "archive-exercise", e.id, "ghost") : ""}${button("Save machine", "save-exercise", "", "dark")}</footer>`;
   }
   if (replaceId)
     return `<h2>Replace exercise for today</h2><p class="muted">Recorded sets must be kept under their original machine.</p><label for="replacement">Replacement machine</label><select id="replacement">${exerciseOptions()}</select><footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Replace", "confirm-replace", replaceId, "dark")}</footer>`;
@@ -282,7 +282,7 @@ function modal() {
   }
   if (vm.cleverSource) {
     const preview = migration.preview(vm.cleverSource, vm.cleverChoices);
-    return `<h2>Import Clever Fit training</h2><p>${preview.totalSessions} workouts · ${preview.exerciseOccurrences} exercise occurrences · ${preview.sets} sets</p><p class="muted">${preview.newSessions} new sessions, ${preview.duplicates} already imported. ${preview.newCatalog} new exercise/device records and ${preview.newPlans} new plans.</p><p class="muted">Machine numbers, settings and original rest durations are not available in the file. Rest defaults to 90 seconds in editable new plans. Exercise occurrences remain separate.</p><h3>Training plans</h3>${preview.plans
+    return `<h2>Import Clever Fit training</h2><p>${preview.totalSessions} workouts · ${preview.exerciseOccurrences} exercise occurrences · ${preview.sets} sets</p><p class="muted">${preview.newSessions} new sessions, ${preview.duplicates} already imported. ${preview.newCatalog} new exercise/device records and ${preview.newPlans} new plans.</p><p class="muted">Machine numbers and original rest durations are not available in the file. Rest defaults to 90 seconds in editable new plans. Exercise occurrences remain separate.</p><h3>Training plans</h3>${preview.plans
       .map(
         (p) =>
           `<label>${escape(p.name)} ${p.existingId ? "(already imported)" : p.nameConflict ? "(existing name: create separate Clever Fit plan)" : ""}<select data-field="clever-reference" data-name="${escape(p.name)}">${p.sessions
@@ -356,7 +356,7 @@ const actions = {
   exercise: (id) => {
     exerciseEditor = id
       ? { ...vm.data.exercises.find((e) => e.id === id) }
-      : { name: "", number: "", settings: "" };
+      : { name: "", number: "" };
   },
   close: () => {
     vm.editor = null;
@@ -375,7 +375,6 @@ const actions = {
       {
         name,
         number: document.getElementById("exercise-number").value,
-        settings: document.getElementById("exercise-settings").value,
       },
       exerciseEditor.id,
     );
@@ -591,8 +590,6 @@ root.addEventListener("change", async (event) => {
       vm.cleverChoices.references[el.dataset.name] = el.value;
     else if (f === "plan-name") vm.editor.name = el.value;
     else if (f === "plan-rest") vm.editor.rest = numeric();
-    else if (f === "plan-settings")
-      vm.editor.items.find((i) => i.id === id).settings = el.value;
     else if (f === "plan")
       vm.editor.items.find((i) => i.id === id).sets[n][key] =
         el.value.trim() === "" ? null : numeric();
@@ -600,7 +597,6 @@ root.addEventListener("change", async (event) => {
       app.set(id, n, { [key]: el.value.trim() === "" ? null : numeric() });
     else if (f === "target")
       app.target(id, n, key, el.value.trim() === "" ? null : numeric());
-    else if (f === "settings") app.settings(id, el.value);
   });
   if ((el.tagName === "SELECT" && el.dataset.action) || vm.error) render();
 });

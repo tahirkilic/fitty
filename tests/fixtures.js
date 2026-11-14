@@ -33,7 +33,7 @@ export function setup() {
   };
 }
 export function seed(app) {
-  app.exercise({ name: "Chest press", number: "12", settings: "Seat 4" });
+  app.exercise({ name: "Chest press", number: "12" });
   const e = app.data.exercises[0];
   app.plan({ name: "A", rest: 90, items: [app.makeItem(e.id)] });
   app.plan({ name: "B", rest: 0, items: [app.makeItem(e.id)] });
