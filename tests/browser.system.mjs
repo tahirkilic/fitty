@@ -138,6 +138,40 @@ for (const [engine, type] of [
         .first()
         .click();
       await summary.getByText("1 of 3 sets completed").waitFor();
+      const badgeColor = () =>
+        summary
+          .locator(".num")
+          .evaluate((element) => getComputedStyle(element).backgroundColor);
+      const incompleteColor = await badgeColor();
+      const doneColor = await card
+        .getByRole("button", { name: "✓", exact: true })
+        .evaluate((element) => getComputedStyle(element).backgroundColor);
+      assert.notEqual(incompleteColor, doneColor);
+      await card
+        .getByRole("button", { name: "○", exact: true })
+        .first()
+        .click();
+      assert.equal(await badgeColor(), incompleteColor);
+      await card.getByRole("button", { name: "○", exact: true }).click();
+      await summary.getByText("3 of 3 sets completed").waitFor();
+      assert.equal(await badgeColor(), doneColor);
+      await summary.click();
+      assert.equal(await badgeColor(), doneColor);
+      await page.reload();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert.equal(await badgeColor(), doneColor);
+      await summary.click();
+      await card
+        .locator(".set-grid:not(.header)")
+        .nth(1)
+        .getByRole("button", { name: "✓", exact: true })
+        .click();
+      assert.equal(await badgeColor(), incompleteColor);
+      await card
+        .locator(".set-grid:not(.header)")
+        .nth(2)
+        .getByRole("button", { name: "✓", exact: true })
+        .click();
       await summary.click();
       await weight.waitFor({ state: "hidden" });
       assert(

@@ -287,3 +287,8 @@ Status: first functional preview implemented; release verification remains open.
 
 - F07 (depends on F05): hold a card for 450 ms, then drag vertically to reorder. Earlier movement cancels the hold and preserves normal scrolling. Active dragging shows a preview and scrolls near viewport edges. Release saves order; Escape, touch cancellation, window blur and page hiding cancel. Inputs/buttons do not start dragging. Alt+Up/Down on a focused header provides keyboard access. No workout move buttons remain.
 - Coverage: application integration checks movement in both directions, reload persistence, recorded/skipped set preservation and unchanged plan/history. Chromium/WebKit workflows cover mouse hold gating, touch scrolling versus dragging, cancellation, keyboard focus and persisted order. Physical iPhone gesture validation remains open.
+
+## Exercise completion indicator · 14 November 2026
+
+- F05/F07: the workout exercise number uses the same green background as a completed set when every set is done. Partial completion and undone sets keep the normal number background. The indicator is derived from saved set completion and works on collapsed cards and after reload.
+- Regression coverage: Chromium/WebKit workout workflow compares actual computed badge/button colors for partial/all/undone completion, collapsed cards and reload recovery.
