@@ -9,7 +9,7 @@
 | F03   | Plan create/edit/duplicate/archive; order, set targets, rest                 | integration: duplication and immutable snapshots                               | Browser editor inputs                                     |
 | F04   | Rotation, manual start, resume, explicit discard                             | integration: rotation, snapshot and recovery                                   | Browser recovery                                          |
 | F05   | Cross-plan prefill, fallback, completion/undo, set changes                   | integration: per-set prior results, fallback, reload                           | Browser interaction                                       |
-| F06   | Timestamp rest; restart/skip; optional manual/timed warm-up                  | unit timestamp math; integration controlled clock                              | Backgrounding on iPhone                                   |
+| F06   | Timestamp rest; restart/skip                                                 | unit timestamp math; integration controlled clock                              | Backgrounding on iPhone                                   |
 | F07   | Jump, defer/reorder, skip, add/remove/replace, settings/targets              | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
 | F08   | Partial finish; before/after review; opt-in plan updates; conflict refusal   | unit plan diffs; integration partial finish, conflict, selective changes       | Browser checkbox workflow                                 |
 | F09   | Historical names/settings/results, previous source dates                     | integration: catalog edits preserve history                                    | Browser history display                                   |
@@ -37,3 +37,7 @@
 Dependencies: F05. Exercise cards start collapsed for new/resumed page loads and new sessions; users open cards through their headers. The machine jump selector has been removed. View-model regression coverage verifies independent expansion, navigation, new exercises, new sessions, reload defaults and unchanged training data. Chromium/WebKit workflow coverage verifies collapsed startup/reload, mouse/keyboard expansion, logging and offline recovery.
 
 Validation for this change: all 33 unit/integration tests and all three Chromium system workflows passed against an isolated local server. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit launch was blocked by missing host libraries (GTK 4, Graphene, WOFF2, HarfBuzz ICU, Hyphen, Manette and GLES); its updated workflows remain unverified here. Actual iPhone checks were not run.
+
+## Regular timed exercises — 14 November 2026
+
+All 34 unit/integration tests and all three Chromium system workflows passed. Timed cardio retains standard per-set logging, recovery, previous-duration prefilling, history and backup coverage. A backup created with the previous release was restored, reloaded, exported and completed successfully without losing existing records or measurements. Version, syntax, architecture, lint, type and formatting checks passed. WebKit remains blocked by the missing host libraries listed above; real iPhone checks were not run.

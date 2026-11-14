@@ -265,9 +265,7 @@ export class CleverFitMigration {
           base,
           items,
           rest: 0,
-          warmup: 0,
           restUntil: null,
-          warmupStarted: null,
           // Original start/end clock times are unknown; do not invent them.
         });
         result.sessions++;

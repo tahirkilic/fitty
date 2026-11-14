@@ -92,6 +92,8 @@ for (const [engine, type] of [
         await page.locator("details.workout-exercise[open]").count(),
         0,
       );
+      assert.equal(await page.locator("main input[type=number]").count(), 6);
+      assert.equal(await page.locator("main .timer").count(), 1);
       assert(await summary.getByText("0 of 3 sets completed").isVisible());
       await page.getByRole("button", { name: "Restart", exact: true }).click();
       assert(!(await weight.isVisible()));
@@ -428,6 +430,27 @@ for (const [engine, type] of [
         .first()
         .waitFor();
       await page.getByRole("button", { name: "Cancel", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Start ↗", exact: true })
+        .last()
+        .click();
+      const cardio = page.locator("details.workout-exercise").filter({
+        has: page.getByRole("heading", { name: "Crosstrainer", exact: true }),
+      });
+      assert.equal(await cardio.getAttribute("open"), null);
+      await cardio.locator("summary").click();
+      const duration = cardio.getByLabel(
+        "Crosstrainer set 1 duration seconds",
+        { exact: true },
+      );
+      assert.equal(await duration.inputValue(), "600");
+      await duration.fill("660");
+      await duration.blur();
+      await cardio.getByRole("button", { name: "○", exact: true }).click();
+      await page.getByRole("button", { name: "Home", exact: true }).click();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert.equal(await duration.inputValue(), "660");
+      await cardio.getByRole("button", { name: "✓", exact: true }).waitFor();
       await page.getByRole("button", { name: "History", exact: true }).click();
       await page.getByText("09.11.2026").waitFor();
       await page.locator("summary").first().click();

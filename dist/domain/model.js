@@ -161,14 +161,9 @@ export function validateData(data) {
     );
     if (!active && !historical) date(s.finishedAt);
     number(s.rest, true);
-    number(s.warmup);
     invariant(
       s.restUntil === null || Number.isFinite(s.restUntil),
       "Invalid timer",
-    );
-    invariant(
-      s.warmupStarted === null || Number.isFinite(s.warmupStarted),
-      "Invalid warmup timer",
     );
     array(s.base);
     ids(s.base);

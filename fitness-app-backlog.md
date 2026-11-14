@@ -16,7 +16,7 @@ Confirmed requirements:
 - One configurable rest duration per plan.
 - Reorder, defer, skip, replace, add, and remove exercises during a session.
 - At session end, choose which changes update the original plan.
-- Cross-trainer warm-up with duration; no general cardio system required.
+- Cross-trainer duration is logged as a regular timed exercise in the plan.
 - Local data plus file export/import. No direct ChatGPT connection or embedded coaching.
 - iCloud and AI write access are outside the first release.
 
@@ -43,7 +43,7 @@ These are implementation defaults, not additional user-confirmed requirements.
 
 1. Open Home; resume an active session or see the next suggested plan.
 2. Start that plan or choose another. Create an independent session snapshot.
-3. Record cross-trainer warm-up duration, or skip warm-up.
+3. Open the exercise you want to log; timed cardio uses regular exercise cards.
 4. See ordered exercises, machine number/settings, and prefilled per-set values.
 5. Adjust values and complete sets; each completion starts the rest countdown.
 6. Tap a collapsed exercise header to open another machine or defer an exercise. Skipping for today remains distinct from deleting it from the plan.
@@ -110,14 +110,13 @@ Acceptance criteria:
 
 Dependencies: F04.
 
-### F06 — Rest timer and warm-up · P0
+### F06 — Rest timer · P0
 
 Acceptance criteria:
 
 - Completing a set starts the plan's rest countdown unless disabled.
 - Skip/restart the countdown; starting another rest replaces the active countdown.
 - Reloading or backgrounding does not restart or freeze elapsed time.
-- Record cross-trainer duration manually or through a timer; warm-up is optional.
 
 Dependencies: F05.
 
@@ -148,7 +147,7 @@ Dependencies: F07.
 
 Acceptance criteria:
 
-- List sessions by date and show exercise names, machine settings, completed/skipped status, per-set results, and warm-up duration.
+- List sessions by date and show exercise names, machine settings, completed/skipped status, per-set results, including timed exercises.
 - Preserve historical names/settings even after catalog or plan changes.
 - Show the previous results from the relevant exercise during training.
 
@@ -183,7 +182,7 @@ Dependencies: F01–F10.
 
 1. Define data schema and storage boundaries; build F01, F02, and an early F10 backup path.
 2. Build F03–F05: plan creation through a recoverable logged workout.
-3. Build F06–F08: timer, warm-up, session flexibility, completion, and plan review.
+3. Build F06–F08: timer, session flexibility, completion, and plan review.
 4. Finish F09–F10: history, validated restore, and ChatGPT-readable export.
 5. Complete F11 and release.
 
@@ -196,7 +195,6 @@ Each implementation task should reference its story ID, include its acceptance c
 - Rotation: ordered plan IDs and next position.
 - Session: source plan/version, immutable starting snapshot, mutable session contents, start/end timestamps and status.
 - Session exercise/set: exercise identity plus historical display snapshot, planned values, actual values, and status.
-- Warm-up: type cross-trainer, duration, completion status.
 - Export envelope: schema version, export timestamp, application version, units, complete data payload.
 
 ## Deferred scope
@@ -214,7 +212,7 @@ Status: first functional preview implemented; release verification remains open.
 - F01–F10: implementation present in `dist/`, with the coverage mapping and remaining checks in `VERIFICATION.md`. Do not treat these stories as accepted until their browser/device checks pass.
 - Increment 1: schema/local repository, machine catalog, plan editor, and early versioned backup path implemented.
 - Increment 2: rotation, independent snapshots, cross-plan prefill, persistent set logging implemented.
-- Increment 3: timestamp timers, optional warm-up, session editing, selective target/settings/structure updates, conflict protection implemented.
+- Increment 3: timestamp timers, session editing, selective target/settings/structure updates, conflict protection implemented.
 - Increment 4: history and validated replacement import implemented.
 - Automated validation: 13 unit/integration tests passing; syntax/boundary/offline-asset checks, TypeScript inner-layer checks, ESLint and Prettier passing. Browser system suite added for Chromium and WebKit, not run in this workspace because the preview relay is unavailable.
 - F11 remains open: real iPhone installation/offline/lifecycle/file flows, full browser verification, release acceptance.
@@ -256,3 +254,8 @@ Status: first functional preview implemented; release verification remains open.
 - F01/F10: Home displays the running app version; backup appVersion and offline cache share the package version. Each commit, including docs/maintenance commits, must increase the version; patch increments are automatic through installed local commit hooks. API commits must run version:bump explicitly. CI checks every introduced commit against all parents, and rejects inconsistent generated version files. Storage key and backup schema remain unchanged.
 - Regression mapping: version script unit/integration coverage checks semantic ordering, synchronization, real commit hooks, manual bumps, staged-file protection and rejected unversioned commits. Chromium/WebKit system workflow verifies the Home label; backup integration verifies appVersion; existing real-upgrade/offline tests use the generated cache identifier.
 - Local validation: all 33 unit/integration tests, synchronized-version checks, syntax/architecture, TypeScript, ESLint and formatting passed. Browser version display and existing update/offline flows are covered by the Chromium/WebKit CI suite; real iPhone verification remains open.
+
+## Regular timed exercises · 14 November 2026
+
+- F05/F09/F10 (dependencies: F04): cross-trainer duration uses the regular exercise card and per-set duration workflow. Rest countdowns remain under F06. Session/history summaries only show exercise results.
+- Coverage: integration verifies timed cardio logging, recovery, history, export/import and previous-duration prefilling; Chromium/WebKit workflows cover the imported cardio card and saved duration. Existing version-1 backups and saved sessions remain readable without changing the storage key or schema.

@@ -107,8 +107,6 @@ export class Training {
         status: "active",
         startedAt: this.clock.iso(),
         restUntil: null,
-        warmup: 0,
-        warmupStarted: null,
       };
     });
   }
@@ -214,19 +212,6 @@ export class Training {
           : null;
     });
   }
-  warmup(action, value) {
-    this.editSession((s) => {
-      if (action === "start") s.warmupStarted = this.clock.now();
-      else if (action === "stop") {
-        if (s.warmupStarted !== null)
-          s.warmup += Math.max(0, (this.clock.now() - s.warmupStarted) / 1000);
-        s.warmupStarted = null;
-      } else {
-        s.warmup = value;
-        s.warmupStarted = null;
-      }
-    });
-  }
   discard() {
     this.transact((d) => {
       d.active = null;
@@ -254,9 +239,6 @@ export class Training {
         }
         p.version++;
       }
-      if (s.warmupStarted !== null)
-        s.warmup += Math.max(0, (this.clock.now() - s.warmupStarted) / 1000);
-      s.warmupStarted = null;
       s.restUntil = null;
       s.status = "finished";
       s.finishedAt = this.clock.iso();

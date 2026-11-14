@@ -185,7 +185,7 @@ function workout() {
       "Session changes stay here until you approve plan updates.",
       button("Finish", "review", "", "dark"),
     ) +
-    `<div class="timer row between"><div><span class="eyebrow">REST TIMER</span><br><strong id="rest-value">${minutes(vm.rest)}</strong></div><div class="row">${button("Restart", "timer", "restart", "ghost")}${button("Skip", "timer", "skip", "ghost")}</div></div><section class="card"><div class="row between"><h3>↗ Cross-trainer warm-up</h3><span class="badge">Optional</span></div><div class="two"><div><label for="warmup">Minutes</label><input id="warmup" data-field="warmup" type="number" min="0" step="0.1" value="${Math.round(s.warmup / 6) / 10}"></div><div style="align-self:end">${button(s.warmupStarted === null ? "Start timer" : "Stop timer", "warmup", s.warmupStarted === null ? "start" : "stop", "ghost")}<p class="muted" id="warmup-value">${minutes(s.warmup + (s.warmupStarted === null ? 0 : (clock.now() - s.warmupStarted) / 1000))}</p></div></div></section>` +
+    `<div class="timer row between"><div><span class="eyebrow">REST TIMER</span><br><strong id="rest-value">${minutes(vm.rest)}</strong></div><div class="row">${button("Restart", "timer", "restart", "ghost")}${button("Skip", "timer", "skip", "ghost")}</div></div>` +
     s.items
       .map(
         (item, index) =>
@@ -227,7 +227,7 @@ function history() {
       .sort((a, b) => sessionDay(b).localeCompare(sessionDay(a)))
       .map(
         (s) =>
-          `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}Warm-up: ${minutes(s.warmup)} · ${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map(historyExercise).join("")}</details>`,
+          `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map(historyExercise).join("")}</details>`,
       )
       .join("") +
     (!vm.data.sessions.length
@@ -462,7 +462,6 @@ const actions = {
     targetId = id;
   },
   timer: (action) => app.timer(action),
-  warmup: (action) => app.warmup(action),
   review: () => {
     vm.review = true;
   },
@@ -602,7 +601,6 @@ root.addEventListener("change", async (event) => {
     else if (f === "target")
       app.target(id, n, key, el.value.trim() === "" ? null : numeric());
     else if (f === "settings") app.settings(id, el.value);
-    else if (f === "warmup") app.warmup("manual", numeric() * 60);
   });
   if ((el.tagName === "SELECT" && el.dataset.action) || vm.error) render();
 });
@@ -612,15 +610,6 @@ if (vm) {
     if (vm.data.active) {
       const r = document.getElementById("rest-value");
       if (r) r.textContent = minutes(vm.rest);
-      const w = document.getElementById("warmup-value"),
-        s = vm.data.active;
-      if (w)
-        w.textContent = minutes(
-          s.warmup +
-            (s.warmupStarted === null
-              ? 0
-              : (clock.now() - s.warmupStarted) / 1000),
-        );
     }
   }, 1000);
   if ("serviceWorker" in navigator) {

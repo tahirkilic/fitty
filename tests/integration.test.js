@@ -70,7 +70,7 @@ test("F05: latest eligible per-set results across plans, fallback, undo, recover
   app.start(a);
   assert.equal(app.data.active.items[0].sets[0].weight, 40.5);
 });
-test("F06: rest replacement, reload, zero duration and warm-up stopwatch", () => {
+test("F06: rest replacement, restart, reload and zero duration", () => {
   const { app, tick, reopen } = setup(),
     { a, b } = seed(app);
   app.start(a);
@@ -84,13 +84,9 @@ test("F06: rest replacement, reload, zero duration and warm-up stopwatch", () =>
   app.timer("skip");
   assert.equal(app.data.active.restUntil, null);
   app.timer("restart");
-  app.warmup("start");
-  tick(60000);
-  app.warmup("stop");
-  assert.equal(app.data.active.warmup, 60);
-  app.warmup("manual", 120);
+  assert.equal(app.data.active.restUntil, until + 30000);
   app.finish([]);
-  assert.equal(app.data.sessions[0].warmup, 120);
+  assert.equal(app.data.sessions[0].restUntil, null);
   app.start(b);
   app.complete(app.data.active.items[0].id, 0);
   assert.equal(app.data.active.restUntil, null);
@@ -220,4 +216,32 @@ test("F02/F04/F09: new workouts use current catalog numbers and preserve existin
   assert.deepEqual(restored.changes(), []);
   assert.deepEqual(restored.data.plans, plans);
   assert.equal(restored.data.sessions[0].items[0].number, "12");
+});
+
+test("F05/F09/F10: timed cardio remains a regular exercise through recovery, history and backup", () => {
+  const { app, clock, reopen } = setup();
+  app.exercise({
+    name: "Cross trainer",
+    kind: "cardio",
+    number: "7",
+    settings: "Level 3",
+  });
+  const exercise = app.data.exercises[0];
+  app.plan({ name: "Cardio", rest: 0, items: [app.makeItem(exercise.id)] });
+  const planId = app.data.plans[0].id;
+  app.start(planId);
+  const item = app.data.active.items[0];
+  app.set(item.id, 0, { durationSeconds: 600 });
+  app.complete(item.id, 0);
+  assert.equal(reopen().data.active.items[0].sets[0].durationSeconds, 600);
+  app.finish([]);
+  const history = structuredClone(app.data.sessions);
+  assert.equal(history[0].items[0].name, "Cross trainer");
+  assert.equal(history[0].items[0].sets[0].durationSeconds, 600);
+  const restored = reopen();
+  restored.restore(decodeBackup(encodeBackup(app.data, clock.iso())));
+  assert.deepEqual(restored.data.sessions, history);
+  restored.start(planId);
+  assert.equal(restored.data.active.items[0].sets[0].durationSeconds, 600);
+  assert.deepEqual(restored.data.sessions, history);
 });

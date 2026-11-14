@@ -55,8 +55,6 @@ export interface Session {
   startedAt?: string;
   finishedAt?: string;
   restUntil: number | null;
-  warmup: number;
-  warmupStarted: number | null;
 }
 export interface Data {
   cleverFitMappings?: Record<string, string>;
