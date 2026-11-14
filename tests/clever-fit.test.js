@@ -386,5 +386,55 @@ if (process.env.CLEVER_FIT_FIXTURE_PATH)
       ),
       1557,
     );
+    assert.equal(app.data.exercises.length, 28);
+    assert.equal(app.data.plans.length, 2);
+    assert.deepEqual(
+      new Set(app.data.plans.map((plan) => plan.name)),
+      new Set(["Einheit A", "Ganzkörper"]),
+    );
+    for (const sourcePlan of ["Einheit A", "Ganzkörper"]) {
+      const latest = data.sessions
+        .filter((session) => session.name === sourcePlan)
+        .sort((a, b) => b.date.localeCompare(a.date))[0];
+      const plan = app.data.plans.find((entry) => entry.name === sourcePlan);
+      assert.equal(plan.items.length, latest.exercises.length);
+      for (let index = 0; index < latest.exercises.length; index++) {
+        assert.equal(plan.items[index].name, latest.exercises[index].name);
+        assert.equal(plan.items[index].sets.length, latest.exercises[index].sets.length);
+      }
+    }
+    for (let index = 0; index < data.sessions.length; index++) {
+      const sourceSession = data.sessions[index];
+      const actual = app.data.sessions[index];
+      assert.equal(actual.historicalDate, sourceSession.date);
+      assert.equal(actual.name, sourceSession.name);
+      assert.equal(actual.startedAt, undefined);
+      assert.equal(actual.finishedAt, undefined);
+      assert.equal(
+        app.data.plans.find((plan) => plan.id === actual.planId).name,
+        sourceSession.name,
+      );
+      assert.equal(actual.items.length, sourceSession.exercises.length);
+      for (let exerciseIndex = 0; exerciseIndex < sourceSession.exercises.length; exerciseIndex++) {
+        const sourceExercise = sourceSession.exercises[exerciseIndex];
+        const recorded = actual.items[exerciseIndex];
+        assert.equal(recorded.name, sourceExercise.name);
+        assert.equal(recorded.kind, sourceExercise.type);
+        assert.equal(recorded.sets.length, sourceExercise.sets.length);
+        for (let setIndex = 0; setIndex < sourceExercise.sets.length; setIndex++) {
+          const expected = sourceExercise.sets[setIndex];
+          const logged = recorded.sets[setIndex];
+          assert.equal(logged.weight, expected.weightKg);
+          assert.equal(logged.reps, expected.reps);
+          assert.equal(logged.durationSeconds, expected.durationSeconds);
+          assert.equal(logged.done, true);
+        }
+      }
+    }
+    const roundTrip = decodeBackup(encodeBackup(app.data, new Date().toISOString()));
+    assert.deepEqual(roundTrip, app.data);
     assert.equal(migration(app).import(data).sessions, 0);
+    assert.equal(app.data.sessions.length, 47);
+    assert.equal(app.data.plans.length, 2);
+    assert.equal(app.data.exercises.length, 28);
   });
