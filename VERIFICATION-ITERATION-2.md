@@ -36,7 +36,7 @@ GitHub Actions workflow: `.github/workflows/verify-clever-fit.yml`. Required che
 - `BASE_URL=http://127.0.0.1:4173 npm run test:system`, using Chromium and WebKit against an isolated static host.
 - System tests include iPhone-sized navigation, catalog, plans, workout recording, backup/restore, Clever Fit file selection, mapping, historical display, repeated imports, and offline use.
 - New full-volume **non-personal** fixture generates 47 sessions, 539 exercise occurrences, 1,557 sets and 28 machine identities, and compares every migrated set and session, backup round trip, and second import.
-- Playwright WebKit on the Linux runner previously returned an internal browser error on **offline page navigation**. The revised WebKit tests retain real offline mode, check an offline-cached script response and perform offline app operations. Chromium continues to verify a new page loading while offline. This distinction must not be presented as physical iOS offline-start validation.
+- Playwright WebKit on the Linux runner returns an internal browser error on **offline page navigation**, and its offline network emulation rejects even cached-script requests. Tests therefore block all outgoing page network requests during WebKit file import, and switch WebKit to actual offline mode only after the import to verify cached-shell presence and existing-page UI/storage operations. Chromium verifies the entire import with the context offline and also a new page loading while offline. These are separate, explicit coverage levels; **WebKit cold offline launch and iPhone Home Screen behavior are not verified**.
 
 #### Run the private full-source migration regression
 
