@@ -185,7 +185,7 @@ function workout() {
       "Session changes stay here until you approve plan updates.",
       button("Finish", "review", "", "dark"),
     ) +
-    `<div class="timer row between"><div><span class="eyebrow">REST TIMER</span><br><strong id="rest-value">${minutes(vm.rest)}</strong></div><div class="row">${button("Restart", "timer", "restart", "ghost")}${button("Skip", "timer", "skip", "ghost")}</div></div><label for="jump-exercise">Jump to a machine</label><select id="jump-exercise" data-action="jump" style="margin-bottom:20px"><option value="">Choose an exercise…</option>${s.items.map((i) => `<option value="${i.id}">${escape(i.name)}</option>`).join("")}</select><section class="card"><div class="row between"><h3>↗ Cross-trainer warm-up</h3><span class="badge">Optional</span></div><div class="two"><div><label for="warmup">Minutes</label><input id="warmup" data-field="warmup" type="number" min="0" step="0.1" value="${Math.round(s.warmup / 6) / 10}"></div><div style="align-self:end">${button(s.warmupStarted === null ? "Start timer" : "Stop timer", "warmup", s.warmupStarted === null ? "start" : "stop", "ghost")}<p class="muted" id="warmup-value">${minutes(s.warmup + (s.warmupStarted === null ? 0 : (clock.now() - s.warmupStarted) / 1000))}</p></div></div></section>` +
+    `<div class="timer row between"><div><span class="eyebrow">REST TIMER</span><br><strong id="rest-value">${minutes(vm.rest)}</strong></div><div class="row">${button("Restart", "timer", "restart", "ghost")}${button("Skip", "timer", "skip", "ghost")}</div></div><section class="card"><div class="row between"><h3>↗ Cross-trainer warm-up</h3><span class="badge">Optional</span></div><div class="two"><div><label for="warmup">Minutes</label><input id="warmup" data-field="warmup" type="number" min="0" step="0.1" value="${Math.round(s.warmup / 6) / 10}"></div><div style="align-self:end">${button(s.warmupStarted === null ? "Start timer" : "Stop timer", "warmup", s.warmupStarted === null ? "start" : "stop", "ghost")}<p class="muted" id="warmup-value">${minutes(s.warmup + (s.warmupStarted === null ? 0 : (clock.now() - s.warmupStarted) / 1000))}</p></div></div></section>` +
     s.items
       .map(
         (item, index) =>
@@ -463,13 +463,6 @@ const actions = {
   },
   timer: (action) => app.timer(action),
   warmup: (action) => app.warmup(action),
-  jump: (id) => {
-    const card = document.getElementById("item-" + id);
-    if (!card) return;
-    vm.setExerciseOpen(id, true);
-    card.open = true;
-    card.scrollIntoView({ behavior: "smooth", block: "start" });
-  },
   review: () => {
     vm.review = true;
   },
@@ -611,13 +604,7 @@ root.addEventListener("change", async (event) => {
     else if (f === "settings") app.settings(id, el.value);
     else if (f === "warmup") app.warmup("manual", numeric() * 60);
   });
-  if (
-    (el.tagName === "SELECT" &&
-      el.dataset.action &&
-      el.dataset.action !== "jump") ||
-    vm.error
-  )
-    render();
+  if ((el.tagName === "SELECT" && el.dataset.action) || vm.error) render();
 });
 if (vm) {
   render();

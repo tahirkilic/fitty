@@ -31,3 +31,9 @@
 - Close/reopen online for an app update and verify local data remains intact.
 - Check touch targets, decimal keyboard, scrolling, modal focus and VoiceOver.
 - Confirm chosen English interface and the user's target iOS version before declaring a release.
+
+## F07 workout card defaults — 14 November 2026
+
+Dependencies: F05. Exercise cards start collapsed for new/resumed page loads and new sessions; users open cards through their headers. The machine jump selector has been removed. View-model regression coverage verifies independent expansion, navigation, new exercises, new sessions, reload defaults and unchanged training data. Chromium/WebKit workflow coverage verifies collapsed startup/reload, mouse/keyboard expansion, logging and offline recovery.
+
+Validation for this change: all 33 unit/integration tests and all three Chromium system workflows passed against an isolated local server. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit launch was blocked by missing host libraries (GTK 4, Graphene, WOFF2, HarfBuzz ICU, Hyphen, Manette and GLES); its updated workflows remain unverified here. Actual iPhone checks were not run.

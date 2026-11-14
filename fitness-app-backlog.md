@@ -46,7 +46,7 @@ These are implementation defaults, not additional user-confirmed requirements.
 3. Record cross-trainer warm-up duration, or skip warm-up.
 4. See ordered exercises, machine number/settings, and prefilled per-set values.
 5. Adjust values and complete sets; each completion starts the rest countdown.
-6. Jump to another machine or defer an exercise. Skipping for today remains distinct from deleting it from the plan.
+6. Tap a collapsed exercise header to open another machine or defer an exercise. Skipping for today remains distinct from deleting it from the plan.
 7. Finish; review actual results and a separate list of proposed plan changes.
 8. Apply selected plan changes or keep the plan unchanged. Preserve the completed session.
 9. Review history or export data for backup and upload to ChatGPT.
@@ -125,7 +125,7 @@ Dependencies: F05.
 
 Acceptance criteria:
 
-- Jump between exercises and reorder remaining work without losing recorded sets.
+- Open exercises through their card headers and reorder remaining work without losing recorded sets. All exercise cards start collapsed, including after reload; there is no “Jump to a machine” selector.
 - Defer an exercise and return later; explicitly skip it for today's session.
 - Add/remove/replace exercises for today; replacement does not relabel already recorded results as another exercise.
 - Session changes leave the source plan unchanged until explicitly applied.

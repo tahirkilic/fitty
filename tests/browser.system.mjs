@@ -86,9 +86,12 @@ for (const [engine, type] of [
       const weight = page.getByLabel("Test press set 1 weight", {
         exact: true,
       });
-      assert(await weight.isVisible());
-      await summary.click();
-      await weight.waitFor({ state: "hidden" });
+      assert(!(await weight.isVisible()));
+      assert.equal(await page.getByLabel("Jump to a machine").count(), 0);
+      assert.equal(
+        await page.locator("details.workout-exercise[open]").count(),
+        0,
+      );
       assert(await summary.getByText("0 of 3 sets completed").isVisible());
       await page.getByRole("button", { name: "Restart", exact: true }).click();
       assert(!(await weight.isVisible()));
@@ -100,9 +103,7 @@ for (const [engine, type] of [
       await weight.waitFor({ state: "visible" });
       await page.keyboard.press("Space");
       await weight.waitFor({ state: "hidden" });
-      await page
-        .locator("#jump-exercise")
-        .selectOption({ label: "Test press" });
+      await summary.click();
       await weight.waitFor({ state: "visible" });
       await page
         .getByRole("button", { name: "Exercises", exact: true })
@@ -133,6 +134,11 @@ for (const [engine, type] of [
       );
       await page.reload();
       await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert.equal(
+        await page.locator("details.workout-exercise[open]").count(),
+        0,
+      );
+      await page.locator("details.workout-exercise summary").first().click();
       assert.equal(
         await page
           .getByLabel("Test press set 1 weight", { exact: true })
@@ -192,6 +198,11 @@ for (const [engine, type] of [
         .click();
       await page.getByText("Machine 28", { exact: true }).waitFor();
       assert.equal(
+        await page.locator("details.workout-exercise[open]").count(),
+        0,
+      );
+      await summary.click();
+      assert.equal(
         await page
           .getByLabel("Test press set 1 weight", { exact: true })
           .inputValue(),
@@ -240,6 +251,7 @@ for (const [engine, type] of [
         await page
           .getByRole("button", { name: "Workout", exact: true })
           .click();
+        await page.locator("details.workout-exercise summary").first().click();
         assert.equal(
           await page
             .getByLabel("Test press set 1 weight", { exact: true })
@@ -267,6 +279,14 @@ for (const [engine, type] of [
         await offlinePage.goto(url);
         await offlinePage
           .getByRole("button", { name: "Resume workout ↗" })
+          .click();
+        assert.equal(
+          await offlinePage.locator("details.workout-exercise[open]").count(),
+          0,
+        );
+        await offlinePage
+          .locator("details.workout-exercise summary")
+          .first()
           .click();
         assert.equal(
           await offlinePage
@@ -594,6 +614,7 @@ for (const [engine, type] of [
       await other.waitForFunction(() =>
         Boolean(navigator.serviceWorker.controller),
       );
+      await page.locator("details.workout-exercise summary").first().click();
       // An update arriving must not replace the whole form or erase a draft.
       await page
         .getByRole("button", { name: "Edit targets", exact: true })
@@ -640,6 +661,11 @@ for (const [engine, type] of [
         stored,
       );
       await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert.equal(
+        await page.locator("details.workout-exercise[open]").count(),
+        0,
+      );
+      await page.locator("details.workout-exercise summary").first().click();
       assert.equal(
         await page
           .getByLabel("Chest press set 1 weight", { exact: true })
