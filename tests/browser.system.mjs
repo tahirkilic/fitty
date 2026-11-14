@@ -123,7 +123,9 @@ for (const [engine, type] of [
         assert(
           await page.evaluate(async () => {
             const cache = await caches.open("form-shell-v3");
-            return Boolean(await cache.match("./main.js"));
+            const cached = await cache.match("./main.js");
+            const response = await fetch("./main.js");
+            return Boolean(cached && response.ok);
           }),
         );
         await page
@@ -256,7 +258,14 @@ for (const [engine, type] of [
     const page = await context.newPage();
     try {
       await page.goto(url);
+      await page.evaluate(() => navigator.serviceWorker.ready);
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
       await page.getByRole("button", { name: "Backup", exact: true }).click();
+      // All parsing, preview, merge, backup and reimport operations must work
+      // while disconnected; the JSON is supplied through the Files picker.
+      await context.setOffline(true);
       const file = {
         name: "clever-fit.json",
         mimeType: "application/json",
@@ -317,7 +326,9 @@ for (const [engine, type] of [
         assert(
           await page.evaluate(async () => {
             const cache = await caches.open("form-shell-v3");
-            return Boolean(await cache.match("./main.js"));
+            const cached = await cache.match("./main.js");
+            const response = await fetch("./main.js");
+            return Boolean(cached && response.ok);
           }),
         );
         await page
