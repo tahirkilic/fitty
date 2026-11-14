@@ -16,7 +16,7 @@ Fitty is a functional preview, version 0.1.0. The core workout features and Clev
 - Plan creation, editing, duplication, archiving, per-set targets, and visit-based rotation.
 - Workout logging with automatic local saves, reload recovery, and previous completed values across plans.
 - Rest timers, optional cross-trainer warm-up, and session-only reordering, skipping, adding, removing, or replacing exercises.
-- Partial completion, selective plan updates, and history that preserves exercise names and settings.
+- Partial completion, selective plan updates, and history that preserves exercise names and settings. Expanded sessions show one row per set with aligned weights/reps or durations and explicit completion status.
 - Versioned JSON backup/restore and additive Clever Fit history import.
 
 Automated checks and Chromium/WebKit system tests passed in the [Iteration 2 CI run](https://github.com/tahirkilic/fitty/actions/runs/43546688555). **Physical iPhone acceptance remains open**, including Home Screen installation, offline startup, backgrounding, and Files workflows. Chromium covers cold offline startup; Linux Playwright WebKit covers cached-shell presence and operations in an already-open offline page, with network requests blocked during migration. WebKit cold offline startup is unverified.

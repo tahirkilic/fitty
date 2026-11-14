@@ -200,6 +200,18 @@ function exerciseOptions() {
     )
     .join("");
 }
+function historySets(item) {
+  const timed = item.kind === "cardio" || item.kind === "isometric";
+  return `<table class="history-sets"><caption class="sr">${escape(item.name)} set results</caption><thead><tr><th scope="col">Set</th>${timed ? '<th scope="col">Duration</th>' : '<th scope="col">Weight</th><th scope="col">Reps</th>'}<th scope="col">Status</th></tr></thead><tbody>${item.sets
+    .map(
+      (set, index) =>
+        `<tr><th scope="row">${index + 1}</th>${timed ? `<td>${set.durationSeconds == null ? "—" : minutes(set.durationSeconds) + " min"}</td>` : `<td>${set.weight == null ? "—" : escape(set.weight) + " kg"}</td><td>${escape(set.reps ?? "—")}</td>`}<td class="${set.done ? "history-completed" : "history-unfinished"}">${set.done ? "✓ Completed" : "Unfinished"}</td></tr>`,
+    )
+    .join("")}</tbody></table>`;
+}
+function historyExercise(item) {
+  return `<section class="history-exercise"><h3>${escape(item.name)}${item.number ? ` · #${escape(item.number)}` : ""}</h3>${item.settings ? `<p class="muted">${escape(item.settings)}</p>` : ""}${item.skipped ? '<p class="history-unfinished">Skipped</p>' : ""}${historySets(item)}</section>`;
+}
 function history() {
   return (
     heading(
@@ -211,7 +223,7 @@ function history() {
       .sort((a, b) => sessionDay(b).localeCompare(sessionDay(a)))
       .map(
         (s) =>
-          `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}Warm-up: ${minutes(s.warmup)} · ${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map((i) => `<div class="list-row"><div><strong>${escape(i.name)} · #${escape(i.number || "—")}</strong><p class="muted">${escape(i.settings)} ${i.skipped ? "· Skipped" : ""}</p><p>${i.sets.map((x) => `${results(x, i.kind)} ${x.done ? "✓" : "(unfinished)"}`).join(" · ")}</p></div></div>`).join("")}</details>`,
+          `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}Warm-up: ${minutes(s.warmup)} · ${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map(historyExercise).join("")}</details>`,
       )
       .join("") +
     (!vm.data.sessions.length
@@ -584,7 +596,7 @@ if (vm) {
       .then(async (registration) => {
         await navigator.serviceWorker.ready;
         const check = async () => {
-          offlineReady = await caches.has("fitty-shell-v4");
+          offlineReady = await caches.has("fitty-shell-v5");
           const status = document.getElementById("offline-state");
           if (status)
             status.textContent = offlineReady

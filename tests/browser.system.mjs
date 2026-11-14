@@ -97,6 +97,39 @@ for (const [engine, type] of [
       await page.getByRole("button", { name: "Finish", exact: true }).click();
       await page.locator('[name="plan-change"]').check();
       await page.getByRole("button", { name: "Save finished workout" }).click();
+      await page.locator("summary").first().click();
+      const resultsTable = page.getByRole("table", {
+        name: "Test press set results",
+      });
+      assert.deepEqual(
+        await resultsTable.locator("thead th").allTextContents(),
+        ["Set", "Weight", "Reps", "Status"],
+      );
+      assert.equal(await resultsTable.locator("tbody tr").count(), 3);
+      assert.equal(
+        await resultsTable.locator("tbody tr").first().innerText(),
+        "1\t40.5 kg\t9\t✓ Completed",
+      );
+      assert.match(
+        await resultsTable.locator("tbody tr").nth(1).innerText(),
+        /Unfinished/,
+      );
+      const rows = await resultsTable.locator("tbody tr").evaluateAll((rows) =>
+        rows.map((row) => ({
+          top: row.getBoundingClientRect().top,
+          bottom: row.getBoundingClientRect().bottom,
+        })),
+      );
+      assert(rows[1].top >= rows[0].bottom);
+      assert(rows[2].top >= rows[1].bottom);
+      for (const width of [320, 390]) {
+        await page.setViewportSize({ width, height: 844 });
+        assert(
+          await page.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        );
+      }
       await page.getByRole("button", { name: "Plans", exact: true }).click();
       await page
         .getByRole("button", { name: "Start ↗", exact: true })
@@ -144,7 +177,7 @@ for (const [engine, type] of [
         // Keep the browser genuinely offline and verify cache plus UI writes.
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v4");
+            const cache = await caches.open("fitty-shell-v5");
             return Boolean(await cache.match("./main.js"));
           }),
         );
@@ -323,7 +356,13 @@ for (const [engine, type] of [
       await page.getByText("09.11.2026").waitFor();
       await page.locator("summary").first().click();
       await page.getByText("10:00 min").waitFor();
-      await page.getByText("— kg × 10").waitFor();
+      const bodyweight = page.getByRole("table", {
+        name: "Back extension 45 degrees set results",
+      });
+      assert.equal(
+        await bodyweight.locator("tbody tr").innerText(),
+        "1\t—\t10\t✓ Completed",
+      );
       await page.getByRole("button", { name: "Backup", exact: true }).click();
       const downloaded = page.waitForEvent("download");
       await page
@@ -351,7 +390,7 @@ for (const [engine, type] of [
       if (engine === "webkit") {
         assert(
           await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v4");
+            const cache = await caches.open("fitty-shell-v5");
             return Boolean(await cache.match("./main.js"));
           }),
         );

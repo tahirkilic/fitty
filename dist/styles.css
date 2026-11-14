@@ -485,3 +485,51 @@ details .card {
     font-size: 11px;
   }
 }
+
+.history-exercise {
+  padding: 20px 0;
+  border-top: 1px solid #e0e4d8;
+  overflow-wrap: anywhere;
+}
+.history-exercise:last-child {
+  padding-bottom: 0;
+}
+.history-exercise h3 {
+  margin-bottom: 5px;
+}
+.history-sets {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+.history-sets th,
+.history-sets td {
+  padding: 10px 4px;
+  border-bottom: 1px solid #eef0e8;
+  text-align: right;
+}
+.history-sets th:first-child,
+.history-sets th:last-child,
+.history-sets td:last-child {
+  text-align: left;
+}
+.history-sets th:last-child,
+.history-sets td:last-child {
+  padding-left: 12px;
+}
+.history-sets thead th {
+  font-size: 12px;
+  font-weight: 600;
+  color: #52634b;
+}
+.history-sets tbody th {
+  font-weight: 400;
+}
+.history-completed {
+  color: #365b25;
+}
+.history-unfinished {
+  color: #79521f;
+}

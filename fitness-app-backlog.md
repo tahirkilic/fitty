@@ -224,3 +224,8 @@ Status: first functional preview implemented; release verification remains open.
 
 - F01/F10: interface, browser title, Home Screen metadata, package name, backup and recovery filenames use Fitty. Offline shell refreshed; local storage uses `fitty.fitness.v1` with no legacy storage migration or cache handling. Backup schema remains version 1.
 - Regression coverage: Chromium/WebKit system workflow asserts app and install names, backup filename, and offline persistence under the Fitty storage key.
+
+## History readability · 14 November 2026
+
+- F09 (depends on F08): expanded sessions group results by exercise, with one numbered table row per set, aligned weight/reps or duration columns, explicit completed/unfinished labels, and a separate skipped-exercise label. Historical snapshots and persistence are unchanged.
+- Regression mapping: `tests/browser.system.mjs` checks recorded decimal values, unfinished sets, vertical row placement and no horizontal overflow at 320/390px in Chromium/WebKit; the imported-history flow covers duration and missing weight values.
