@@ -1,61 +1,117 @@
-# Form — Personal training notebook
+# Fitty
 
-Implementation preview, updated 13 November 2026. English, kilograms, local-only storage. No account database or AI connection. Hosting access may ask for ChatGPT sign-in; training data stays in the browser.
+A personal, offline-capable workout notebook for iPhone. Create rotating training plans, record each set, and carry previous results into your next session. Training data stays in your browser; JSON files provide backup, restore, and a manual handoff to ChatGPT.
 
-## iPhone
+## Current status
 
-1. Open the deployed URL in Safari while online and sign in if asked.
-2. Tap Share → Add to Home Screen. Open the new Form icon online once.
-3. Wait for **Offline ready** in the top right. Add machines in Exercises, then build Plans. New plans enter the visit rotation automatically; customize it under Plans.
-4. Start a workout, enter values and tap the circle to complete each set. All session changes save immediately. Plan edits save when you tap Save plan.
-5. Finish and choose any target/settings/structure updates to keep. Actual results never automatically change targets. Unfinished sets remain unfinished, and exercises with no completed sets become skipped.
-6. Export regularly from Backup → Download JSON backup. Save to Files. Restore with the file picker; review the counts before confirming replacement. Export current data first if it matters.
-7. Upload an exported JSON file to ChatGPT yourself for analysis.
+Fitty is a functional preview, version 0.1.0. The core workout features and Clever Fit migration are implemented on `main`. The interface is English and weights use kilograms. The installed app and backup filenames currently use the original **Form** name.
 
-Use the same website address and Home Screen app. Local data is specific to the browser/device/origin; Safari and an installed app can have different storage on some iOS versions. Back up before moving, uninstalling, or clearing website data. The app does not promise background audio or lock-screen notifications. Timers recover from stored timestamps.
+- Exercise/machine management with separate identities, machine numbers, settings, and archiving.
+- Plan creation, editing, duplication, archiving, per-set targets, and visit-based rotation.
+- Workout logging with automatic local saves, reload recovery, and previous completed values across plans.
+- Rest timers, optional cross-trainer warm-up, and session-only reordering, skipping, adding, removing, or replacing exercises.
+- Partial completion, selective plan updates, and history that preserves exercise names and settings.
+- Versioned JSON backup/restore and additive Clever Fit history import.
 
-## Clever Fit migration (Iteration 2)
+Automated checks and Chromium/WebKit system tests passed in the [Iteration 2 CI run](https://github.com/tahirkilic/fitty/actions/runs/43546688555). **Physical iPhone acceptance remains open**, including Home Screen installation, offline startup, backgrounding, and Files workflows. Chromium covers cold offline startup; Linux Playwright WebKit covers cached-shell presence and operations in an already-open offline page, with network requests blocked during migration. WebKit cold offline startup is unverified.
 
-From the installed iPhone Home Screen app, open **Backup → Import from Clever Fit → Choose Clever Fit workout JSON**. Select `workout_sessions_merged.json` in the iPhone **Files** picker. Review the preview, choose the reference workout for each plan (latest is the default), and review each exercise-to-machine mapping. Select `Create a new record` when two machines have similar names but are not the same. Tap **Import exercises, 2 plans and history** to confirm.
+The full personal Clever Fit file has been structurally audited but has not yet been run through the actual importer. See the [current verification report and iPhone checklist](VERIFICATION-ITERATION-2.md). The [original verification report](VERIFICATION.md) records the earlier baseline.
 
-The importer adds reusable exercises/devices, the two **editable plans** (`Einheit A`, `Ganzkörper`) reconstructed from their most recent sessions, and every historical workout linked to its plan. It **does not replace existing workouts**, change the plan rotation, or require connectivity. Conflicting existing plan names are not overwritten: an imported one gets `(Clever Fit)` appended. Add imported plans to your visit rotation explicitly from **Plans**.
+## Use on iPhone
 
-Source session dates display as `DD.MM.YYYY`; source start/end clock times are unknown and are not fabricated. Unknown weights and repetitions remain blank; cross-trainer and isometric sets retain their duration. Similarly named machine identities are not fuzzy-merged, and a twice-occurring `Butterfly machine` is kept as two separate occurrences. Machine number/settings are not available in Clever Fit export; imported records have blank fields. Imported plan rest times start with an explicitly editable **90-second app default**.
+1. Open your deployed Fitty URL in Safari while online. Managed hosting may require ChatGPT sign-in; the app has no account database.
+2. Tap **Share → Add to Home Screen**, then open the **Form** icon online once.
+3. Wait for **Offline ready**. Add machines under **Exercises**, create **Plans**, and configure their rotation.
+4. Start a workout, enter values, and tap the circle to complete each set. Session changes save immediately; plan edits save with **Save plan**.
+5. Finish and review any target, settings, or structure changes to keep in the plan. Actual results do not automatically change plan targets. Exercises with no completed sets become skipped.
+6. Regularly use **Backup → Download JSON backup** and save the file in Files.
 
-Repeated imports safely skip previously migrated records, and the entire import saves atomically as one local dataset change. Before a first import, **download a backup** from Backup and store it in iPhone Files. Do not import Clever Fit workout JSON using the separate **Restore from a backup** picker; that picker replaces the app's data. The normal JSON backup retains all migrated plans, history, source mappings and optional values.
+Use the same website address and Home Screen app. Storage belongs to the browser, device, and origin; Safari and an installed app can have different storage on some iOS versions. Export before moving to another address/device, uninstalling, or clearing website data. Avoid logging in multiple windows at once. Timers recover from timestamps; background sound and lock-screen notifications are not guaranteed.
 
-The personal Clever Fit JSON must **not** be checked into the repository. Run real-fixture regression locally with `CLEVER_FIT_FIXTURE_PATH=/path/to/workout_sessions_merged.json npm test`. For the source used in this iteration, verify **2 plans, 47 sessions, 539 exercise occurrences and 1,557 recorded sets**. The default empty-catalog import creates **28 distinct catalog records** from 27 strings because of one repeated Butterfly identity; reusing existing catalog records reduces the number created.
+## Backup and restore
+
+**Download JSON backup** exports exercises, plans, rotation, history, and any active session. You can upload that file to ChatGPT for analysis yourself; there is no automatic AI connection.
+
+**Restore from a backup** validates a Fitty backup, previews counts, and replaces all current app data after confirmation. Export current data first. Invalid files are rejected before any replacement; restore does not merge datasets. Files are limited to 10 MB.
+
+Backups use schema version 1, with application version, kilogram units, UTC export time, stable IDs, and the complete dataset. Clever Fit imports retain optional historical dates, timed/unknown measurements, and source mappings in subsequent backups.
+
+## Import from Clever Fit
+
+1. Download a Fitty backup before the first import.
+2. Open **Backup → Import from Clever Fit → Choose Clever Fit workout JSON**, and select your `workout_sessions_merged.json` in Files.
+3. Review counts, reference workouts, and exercise-to-machine mappings. Choose **Create a new record** when similarly named machines are different equipment.
+4. Confirm **Import exercises, 2 plans and history**. Add the imported plans to your rotation explicitly under **Plans**.
+
+This importer adds exercises/devices, editable **Einheit A** and **Ganzkörper** plans, and historical workouts in one atomic save. It preserves existing workouts and rotation, skips previously imported records on repeat imports, and appends `(Clever Fit)` to conflicting plan names. Latest workouts are the default plan templates; you can choose other reference workouts before importing.
+
+Source calendar dates display as `DD.MM.YYYY`; unknown clock times and measurements stay unknown. Timed cardio/isometric sets retain duration. Machine numbers/settings start blank and imported plans use an editable 90-second rest default. Similar names are not fuzzy-merged; repeated machine occurrences can keep distinct identities.
+
+Use the Clever Fit picker for source workout JSON. The separate backup restore picker replaces data. Keep personal workout files outside the repository. See the [migration backlog](clever-fit-migration-backlog-v2.md) for detailed behavior and verification boundaries.
 
 ## Development
 
-Requires Node 22+. Run `npm ci` to install the pinned development tools; production has no dependencies and no build step. `dist/` is the complete static PWA.
+Requires Node.js 22+ and npm. Production has no dependencies or build step: `dist/` is the complete static PWA, including editable source modules.
 
-- `npm test`: unit and adapter/application integration checks.
-- `npm run typecheck`: TypeScript checks for typed data contracts and inner-layer JavaScript.
-- `npm run lint` and `npm run format:check`: configured lint rules and Prettier.
-- `npm run check`: JavaScript syntax, dependency boundaries, browser independence of inner layers, whitespace, and offline asset integrity.
-- Serve `dist/` over HTTPS (or localhost for development). Service workers require a secure context.
-- Optional system suite: `npm ci`, then `npx playwright install chromium webkit`. Run `BASE_URL=https://isolated-test-site.example node --test tests/browser.system.mjs`. The browser suite starts fresh browser profiles and must use a test deployment. Set PLAYWRIGHT_MODULE to an installed absolute module path if necessary.
-- No bundling or remote fonts/CDNs. Never put training data in this repository.
+```bash
+git clone https://github.com/tahirkilic/fitty.git
+cd fitty
+npm ci
+python3 -m http.server 4173 --directory dist
+```
 
-## Architecture / ADR 001
+The local server command requires Python 3. Open `http://localhost:4173`. Deploy the contents of `dist/` to an HTTPS static host for iPhone use; service workers require HTTPS or localhost. A phone accessing a plain HTTP LAN address will not get service-worker support. No bundling, remote fonts, or CDNs are needed.
 
-Layered MVVM with dependency injection at `dist/main.js` (composition and DOM bindings). Domain handles validation, snapshots, prefill selection, plan diffs, and timestamp arithmetic. Application use cases own mutations and transaction boundaries. Infrastructure adapts synchronous localStorage and versioned JSON; presentation exposes view state and draft editing. Browser time and IDs are injected.
+### Checks
 
-A complete dataset is stored in a single localStorage value. Each mutation clones, validates, persists atomically with `setItem`, and only then publishes the new application state. Failed writes retain the previous state. Compare-before-write detects stale tabs; this is a single-user app, and simultaneous cross-tab transactions are not supported. Never use two windows to log concurrently. There is no silent reset for malformed or unsupported stored data: a recovery download is offered.
+```bash
+npm run format:check
+npm run lint
+npm run typecheck
+npm run check
+npm test
+```
 
-## Backup schema v1
+- `format:check`: Prettier formatting.
+- `lint`: ESLint rules.
+- `typecheck`: TypeScript data contracts and inner-layer JavaScript; DOM bindings are not yet type-checked.
+- `check`: syntax, architecture boundaries, inner-layer browser independence, whitespace, and offline asset integrity.
+- `test`: unit and application/adapter integration tests.
 
-Envelope: `schemaVersion: 1`, `appVersion`, `units: "kg"`, UTC `exportedAt`, `data`.
+For browser system tests, start the local server above in a separate terminal, then run:
 
-Data contains `exercises`, `plans`, ordered plan-ID `rotation`, next rotation index `next`, finished `sessions`, and nullable `active`. Records have stable string IDs. Exercise/machine records store name, number, free-text settings, and archive flag. Plans have a monotonically increasing version, rest seconds, and ordered items with independent per-set `weight` (decimal kg) and integer `reps`.
+```bash
+npx playwright install --with-deps chromium webkit
+BASE_URL=http://127.0.0.1:4173 npm run test:system
+```
 
-Sessions store source plan/version, original prescription `base`, historical machine names/settings, targets and actual values separately, done flags, skipped flags, warm-up seconds, start/finish timestamps, and timer timestamps in milliseconds. Previous values come from the latest finished session with a completed, non-skipped matching machine and set position. Validation covers IDs, references, finite non-negative values, collection size, schema and units. Import validates in full before one replacement write; no merge or partial restore. File input is limited to 10 MB.
+Use an isolated test host without personal training data. The suite uses fresh browser profiles at an iPhone viewport size. CI runs these checks through [verify-clever-fit.yml](.github/workflows/verify-clever-fit.yml).
 
-## Updates
+The default migration regression uses a synthetic full-volume dataset. To test the actual private source file locally, keep it outside Git and run:
 
-Change the service-worker cache version in `dist/sw.js` and the ready indicator in `dist/main.js` when assets change. Update the full shell file list for new modules. A new service worker precaches the complete shell and activates after old app clients close. Do not change the localStorage key for ordinary app updates. Breaking schema changes require an explicit validated migration; unknown schemas fail closed. Export before a major update.
+```bash
+CLEVER_FIT_FIXTURE_PATH=/absolute/path/to/workout_sessions_merged.json npm test
+```
 
-## Verification status
+### Architecture and persistence
 
-See `VERIFICATION.md`. This is a preview, not a release certified on iPhone. Unit and integration checks do not substitute for real browser, Home Screen, or device testing.
+Fitty uses layered MVVM with dependency injection:
+
+| Location               | Responsibility                                                                                             |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `dist/domain/`         | Validation, snapshots, prefill selection, plan differences, migration identities, and timestamp arithmetic |
+| `dist/application/`    | Training and migration use cases, mutations, and transaction boundaries                                    |
+| `dist/infrastructure/` | localStorage, versioned backups, and Clever Fit file parsing                                               |
+| `dist/presentation/`   | View state and draft editing                                                                               |
+| `dist/main.js`         | Composition root and DOM bindings                                                                          |
+| `tests/`               | Unit, integration, system, and architecture checks                                                         |
+
+A complete dataset is stored in one localStorage value. Mutations clone and validate data, persist it with one `setItem`, then publish the new state. Failed writes retain the previous state; compare-before-write detects stale tabs. Malformed or unsupported stored data offers recovery download rather than a silent reset. Concurrent multi-window logging is not supported.
+
+When changing app assets, update the cache version in `dist/sw.js`, the ready indicator in `dist/main.js`, and the full shell list for new modules. New workers activate after old app clients close. Preserve the storage key for ordinary updates; breaking schema changes require explicit validated migration.
+
+Follow [AGENTS.md](AGENTS.md). The [original backlog](fitness-app-backlog.md) maps the first-release scope; the [migration backlog](clever-fit-migration-backlog-v2.md) tracks the implemented second iteration. iCloud/sync, accounts, embedded AI coaching, and automatic ChatGPT data access remain outside the current scope.
+
+## License
+
+[MIT](LICENSE) © 2026 Tahir Kilic.
