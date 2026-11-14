@@ -59,3 +59,11 @@ Every implemented feature and bug fix must have automated coverage at the approp
 - Prefill weights and repetitions from the same exercise/machine's last completed appearance across any plan.
 - Keep session changes separate from plan changes; selectively apply approved changes to the plan and preserve historical sessions.
 - Defer iCloud and automatic AI data access. Do not introduce a backend or in-app AI coaching without a new requirement.
+
+## App version and commits
+
+- Increment the app version before every commit, including documentation, formatting, maintenance, merge and amend commits. Use stable major.minor.patch versions; patch increments are the default.
+- `package.json` is the version source. Run `npm run version:bump` before committing through an API or any path that bypasses Git hooks. It synchronizes the lockfile, Home/backup version module and service-worker cache; include all generated changes in the same commit.
+- `npm ci` / `npm install` installs the tracked pre-commit and pre-merge-commit hooks. Ordinary commits automatically bump the patch version unless a larger version has already been staged. Never bypass version checks. Resolve partially staged version-managed files explicitly.
+- CI checks every introduced commit against every parent, including commits made through GitHub tools; a final version bump does not repair an earlier unversioned commit. Prefer fast-forward integration of verified commits. A newly created merge commit needs its own higher version.
+- Keep Home, exported backup metadata, package/lockfile and offline cache versions synchronized. Preserve the storage key and backup schema during version bumps. Run `npm run version:check` and applicable tests after bumping, before creating each commit.

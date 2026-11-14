@@ -1,3 +1,4 @@
+import { APP_VERSION } from "../domain/app-version.js";
 import { emptyData, validateData } from "../domain/model.js";
 export class LocalRepository {
   /** @param {Storage} storage */
@@ -38,7 +39,7 @@ export function encodeBackup(data, now) {
   return JSON.stringify(
     {
       schemaVersion: 1,
-      appVersion: "0.1.0",
+      appVersion: APP_VERSION,
       units: "kg",
       exportedAt: now,
       data: validateData(data),

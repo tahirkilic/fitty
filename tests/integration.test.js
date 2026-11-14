@@ -1,4 +1,5 @@
 import { test } from "node:test";
+import { APP_VERSION } from "../dist/domain/app-version.js";
 import assert from "node:assert/strict";
 import {
   LocalRepository,
@@ -142,6 +143,7 @@ test("F10: backup round trip, malformed restore, complete active session and ato
   app.start(a);
   app.set(app.data.active.items[0].id, 0, { weight: 12.75, reps: 8 });
   const text = encodeBackup(app.data, clock.iso());
+  assert.equal(JSON.parse(text).appVersion, APP_VERSION);
   assert.deepEqual(decodeBackup(text), app.data);
   assert.throws(() => decodeBackup("{oops"));
   const bad = JSON.parse(text);

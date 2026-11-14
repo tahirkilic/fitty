@@ -1,5 +1,6 @@
 // Run against a test deployment, never against a device with real training data.
 import { test } from "node:test";
+import { APP_VERSION, SHELL_CACHE } from "../dist/domain/app-version.js";
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
@@ -24,6 +25,11 @@ for (const [engine, type] of [
     try {
       await page.goto(url);
       assert.equal(await page.title(), "Fitty — Training notebook");
+      await page.getByLabel("App version", { exact: true }).waitFor();
+      assert.equal(
+        await page.getByLabel("App version", { exact: true }).innerText(),
+        `Fitty · Version ${APP_VERSION}`,
+      );
       await page
         .locator(".brand")
         .getByText("Fitty", { exact: false })
@@ -226,10 +232,10 @@ for (const [engine, type] of [
         // Playwright WebKit's offline new-page navigation can fail internally.
         // Keep the browser genuinely offline and verify cache plus UI writes.
         assert(
-          await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v8");
+          await page.evaluate(async (cacheName) => {
+            const cache = await caches.open(cacheName);
             return Boolean(await cache.match("./main.js"));
-          }),
+          }, SHELL_CACHE),
         );
         await page
           .getByRole("button", { name: "Workout", exact: true })
@@ -439,10 +445,10 @@ for (const [engine, type] of [
       await context.setOffline(true);
       if (engine === "webkit") {
         assert(
-          await page.evaluate(async () => {
-            const cache = await caches.open("fitty-shell-v8");
+          await page.evaluate(async (cacheName) => {
+            const cache = await caches.open(cacheName);
             return Boolean(await cache.match("./main.js"));
-          }),
+          }, SHELL_CACHE),
         );
         await page
           .getByRole("button", { name: "History", exact: true })
@@ -493,7 +499,7 @@ async function updateServer() {
         content = Buffer.from(
           content
             .toString()
-            .replaceAll("fitty-shell-v8", `fitty-shell-update-test-${version}`),
+            .replaceAll(SHELL_CACHE, `fitty-shell-update-test-${version}`),
         );
       if (file === "index.html")
         content = Buffer.from(

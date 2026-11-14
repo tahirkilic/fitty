@@ -1,32 +1,25 @@
 name: Fitty verification
 on:
   push:
-    branches: [main, 'fix/**']
   pull_request:
     branches: [main]
 permissions:
-  contents: write
+  contents: read
 jobs:
   verify:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - name: Format and persist changes on the migration branch
-        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
-        run: |
-          npm run format
-          if ! git diff --quiet; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add dist tests *.md package.json .openai/hosting.json
-            git commit -m "style: format Clever Fit migration changes"
-            git push
-          fi
+      - name: Verify version increase in every introduced commit
+        run: npm run version:commits
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck

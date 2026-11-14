@@ -1,3 +1,4 @@
+import { APP_VERSION, SHELL_CACHE } from "./domain/app-version.js";
 import { Training } from "./application/training.js";
 import { CleverFitMigration } from "./application/clever-fit-migration.js";
 import { parseCleverFit } from "./infrastructure/clever-fit.js";
@@ -102,7 +103,7 @@ function home() {
               0,
             )} sets completed</p>${button("View training history →", "tab", "history", "ghost")}`
         : '<p class="empty">The first session is the start of your story.</p>'
-    }</section><p class="muted" style="padding:0 10px">↳ Built for the gym. Saved on this device.<br>Export a backup regularly to keep your progress safe.</p></div></div>`
+    }</section><p class="muted" style="padding:0 10px">↳ Built for the gym. Saved on this device.<br>Export a backup regularly to keep your progress safe.</p><p class="muted app-version" aria-label="App version">Fitty · Version ${APP_VERSION}</p></div></div>`
   );
 }
 function catalog() {
@@ -642,7 +643,7 @@ if (vm) {
         window,
         document,
         caches,
-        "fitty-shell-v8",
+        SHELL_CACHE,
       ),
       () => window.location.reload(),
     );

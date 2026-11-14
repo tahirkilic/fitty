@@ -1,10 +1,11 @@
-const CACHE = "fitty-shell-v8";
+const CACHE = "fitty-shell-0.1.1";
 const FILES = [
   "./",
   "./index.html",
   "./styles.css",
   "./main.js",
   "./domain/model.js",
+  "./domain/app-version.js",
   "./domain/clever-fit.js",
   "./application/training.js",
   "./application/clever-fit-migration.js",
