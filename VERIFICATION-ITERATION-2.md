@@ -1,6 +1,6 @@
 # Iteration 2 — Migration verification and iPhone release checklist
 
-Updated: 14 November 2026. Feature code merged in [PR #1](https://github.com/tahirkilic/fitty/pull/1). Verification follow-up: [PR #2](https://github.com/tahirkilic/fitty/pull/2).
+Updated: 14 November 2026. Feature code merged in [PR #1](https://github.com/tahirkilic/fitty/pull/1). Verification follow-up also merged into `main` in [PR #2](https://github.com/tahirkilic/fitty/pull/2).
 
 ## Scope and verification boundaries
 
@@ -68,4 +68,4 @@ Mark manual acceptance complete only after the user or tester performs these ste
 
 ## Release decision
 
-Source structural audit is complete. Code and test coverage are committed to GitHub. Passing CI is necessary but not sufficient to claim full migration success. **Full real-file execution in the actual importer and a physical iPhone Home Screen/Files/offline check remain separate acceptance gates**.
+Source structural audit is complete. Code and test coverage are merged into GitHub `main`. Passing CI is necessary but not sufficient to claim full migration success. **Full real-file execution in the actual importer and a physical iPhone Home Screen/Files/offline check remain separate acceptance gates**.
