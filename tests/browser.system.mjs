@@ -292,7 +292,12 @@ for (const [engine, type] of [
         await page
           .getByRole("button", { name: "Workout", exact: true })
           .click();
-        await page.locator("details.workout-exercise summary").first().click();
+        const restoredCard = page.locator("details.workout-exercise").first();
+        if (!(await restoredCard.evaluate((card) => card.open)))
+          await restoredCard.locator("summary").click();
+        await page
+          .getByLabel("Test press set 1 weight", { exact: true })
+          .waitFor();
         assert.equal(
           await page
             .getByLabel("Test press set 1 weight", { exact: true })
