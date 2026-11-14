@@ -90,7 +90,7 @@ for (const [engine, type] of [
       assert.equal(await card.locator("input").count(), 6);
       assert.deepEqual(
         await card.locator(".exercise-body > .row button").allTextContents(),
-        ["+ Set", "↑", "Defer ↓", "Remove"],
+        ["Skip", "+ Set", "↑", "Defer ↓", "Remove"],
       );
       const weight = page.getByLabel("Test press set 1 weight", {
         exact: true,

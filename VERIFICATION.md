@@ -57,3 +57,7 @@ All 35 unit/integration tests and three Chromium system workflows passed. Browse
 ## Confirm exercise and set deletion — 14 November 2026
 
 All 35 unit/integration tests and four Chromium system workflows passed. The new browser workflow covers cancelling and confirming exercise/set removal in workouts and plan drafts, unchanged storage on cancellation, immediate workout persistence, reload recovery, preserved history/source plans and recorded-result safeguards. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit coverage is included but remains blocked by the host libraries listed above; physical iPhone verification remains open.
+
+## Workout card action placement — 14 November 2026
+
+All 35 unit/integration tests, four Chromium system workflows and code checks passed. The browser assertion verifies Skip belongs to the bottom action row. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.

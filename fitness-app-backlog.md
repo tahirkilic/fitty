@@ -278,3 +278,7 @@ Status: first functional preview implemented; release verification remains open.
 
 - F03/F05/F07: removing an exercise or deleting a set requires explicit confirmation naming the exercise and set number where applicable. This applies to active workouts and plan drafts. Cancelling preserves data; confirmed workout changes save immediately, and plan drafts still require Save plan. Existing recorded-result safeguards remain enforced.
 - Regression mapping: Chromium/WebKit system workflows cover cancel/confirm for both actions, stored-data preservation, plan drafts, recorded-set safeguards and reload persistence. Existing integration tests verify removal rules and history preservation.
+
+## Workout card action placement · 14 November 2026
+
+- F07: Skip (or Return for skipped exercises) appears in the bottom action row alongside set addition, moving up, deferring and removing. The existing browser action-row assertion covers the placement; skip/return behavior is unchanged.
