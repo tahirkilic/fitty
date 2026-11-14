@@ -15,7 +15,7 @@ Fitty is a functional preview. The running app version is shown on the Home tab.
 - Exercise/machine management with separate identities, machine numbers and archiving.
 - Plan creation, editing, duplication, archiving, per-set targets, and visit-based rotation.
 - Workout logging with automatic local saves, reload recovery, and previous completed values across plans. Tap an exercise header to collapse or expand its card; machine number, skip status and set progress remain visible. All cards start collapsed, keep their state during navigation and session edits, and reset to collapsed after reloading or starting another workout.
-- Rest timers and session-only reordering, skipping, adding, removing, or replacing exercises.
+- Rest timers and session-only reordering, skipping, adding or removing exercises.
 - New workouts use the current exercise catalog machine numbers. Active and completed workouts retain their starting numbers.
 - Partial completion, selective plan updates, and history that preserves exercise names. Expanded sessions show one row per set with aligned weights/reps or durations and explicit completion status.
 - Versioned JSON backup/restore and additive Clever Fit history import.

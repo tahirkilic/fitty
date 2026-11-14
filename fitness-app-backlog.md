@@ -14,7 +14,7 @@ Confirmed requirements:
 - Each set has its own weight and repetitions. Both prefill from the exercise's last appearance in any plan.
 - Show exercise/machine name and machine number.
 - One configurable rest duration per plan.
-- Reorder, defer, skip, replace, add, and remove exercises during a session.
+- Reorder, defer, skip, add, and remove exercises during a session.
 - At session end, choose which changes update the original plan.
 - Cross-trainer duration is logged as a regular timed exercise in the plan.
 - Local data plus file export/import. No direct ChatGPT connection or embedded coaching.
@@ -125,7 +125,7 @@ Acceptance criteria:
 
 - Open exercises through their card headers and reorder remaining work without losing recorded sets. All exercise cards start collapsed, including after reload; there is no “Jump to a machine” selector.
 - Defer an exercise and return later; explicitly skip it for today's session.
-- Add/remove/replace exercises for today; replacement does not relabel already recorded results as another exercise.
+- Add/remove exercises for today; recorded results keep their original exercise identity.
 - Session changes leave the source plan unchanged until explicitly applied.
 
 Dependencies: F05.
@@ -268,3 +268,8 @@ Status: first functional preview implemented; release verification remains open.
 
 - F05/F07/F08: workout cards log actual measurements and retain previous-session prefilling. Plan defaults are edited in Plans. The finish review retains optional exercise/order/set-count updates.
 - Regression coverage verifies set-count plan updates, unchanged prescribed measurements when logging actual results, cross-plan prefilling and update-time editor protection.
+
+## Session exercise actions · 14 November 2026
+
+- F07 (depends on F05): workout cards expose set addition, moving up, deferring and removing. New exercises are appended through the session exercise picker. Recorded sets cannot be removed without undoing completion.
+- Regression coverage verifies the exact card action list and confirms adding an exercise preserves recorded results and creates a separate session item.

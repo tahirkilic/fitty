@@ -166,17 +166,9 @@ export class Training {
       s.items.splice(target, 0, s.items.splice(index, 1)[0]);
     });
   }
-  addExercise(exerciseId, replaceId) {
+  addExercise(exerciseId) {
     this.editSession((s, d) => {
-      const item = sessionItem(this.makeItem(exerciseId), d);
-      if (replaceId) {
-        const index = s.items.findIndex((i) => i.id === replaceId);
-        invariant(
-          !s.items[index].sets.some((x) => x.done),
-          "Recorded results cannot be replaced. Add another exercise instead.",
-        );
-        s.items.splice(index, 1, item);
-      } else s.items.push(item);
+      s.items.push(sessionItem(this.makeItem(exerciseId), d));
     });
   }
   removeExercise(id) {

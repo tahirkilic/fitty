@@ -88,6 +88,10 @@ for (const [engine, type] of [
       const card = page.locator("details.workout-exercise").first();
       const summary = card.locator("summary");
       assert.equal(await card.locator("input").count(), 6);
+      assert.deepEqual(
+        await card.locator(".exercise-body > .row button").allTextContents(),
+        ["+ Set", "↑", "Defer ↓", "Remove"],
+      );
       const weight = page.getByLabel("Test press set 1 weight", {
         exact: true,
       });

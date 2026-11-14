@@ -10,7 +10,7 @@
 | F04   | Rotation, manual start, resume, explicit discard                             | integration: rotation, snapshot and recovery                                   | Browser recovery                                          |
 | F05   | Cross-plan prefill, fallback, completion/undo, set changes                   | integration: per-set prior results, fallback, reload                           | Browser interaction                                       |
 | F06   | Timestamp rest; restart/skip                                                 | unit timestamp math; integration controlled clock                              | Backgrounding on iPhone                                   |
-| F07   | Jump, defer/reorder, skip, add/remove/replace                                | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
+| F07   | Jump, defer/reorder, skip, add/remove                                        | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
 | F08   | Partial finish; before/after review; opt-in plan updates; conflict refusal   | unit plan diffs; integration partial finish, conflict, selective changes       | Browser checkbox workflow                                 |
 | F09   | Historical names/results, previous source dates                              | integration: catalog edits preserve history                                    | Browser history display                                   |
 | F10   | Versioned offline export, preview/confirm restore, boundary validation       | integration: round trip, malformed/reference/version rejection, failed restore | iOS Files download/upload                                 |
@@ -26,7 +26,7 @@
 - Airplane mode cold launch, create/edit plan and machine, complete offline workout.
 - Background/lock, reopen, confirm rest elapsed correctly and active workout recovers.
 - A/B rotation, manual plan choice, discard, partial completion, cross-plan previous values.
-- Reorder/defer/replace without relabelling recorded sets; plan targets separate from actuals.
+- Reorder/defer/add/remove without relabelling recorded sets; plan targets separate from actuals.
 - Export to Files/share, restore via file picker, malformed backup leaves data unchanged.
 - Close/reopen online for an app update and verify local data remains intact.
 - Check touch targets, decimal keyboard, scrolling, modal focus and VoiceOver.
@@ -49,3 +49,7 @@ All 35 unit/integration tests and three Chromium system workflows passed. Catalo
 ## Workout measurements — 14 November 2026
 
 All 35 unit/integration tests and three Chromium system workflows passed. Session cards log actual results; plan defaults remain editable in Plans. System coverage verifies optional set-count updates, previous-session prefilling and protection of a catalog editor draft during an app update. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.
+
+## Session exercise actions — 14 November 2026
+
+All 35 unit/integration tests and three Chromium system workflows passed. Browser coverage asserts the complete exercise action list; integration verifies newly added exercises append independently without altering recorded sets. Version, syntax, architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.

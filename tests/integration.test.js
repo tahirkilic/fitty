@@ -98,10 +98,13 @@ test("F07/F08: session edit safeguards and selected plan updates preserve histor
   const first = app.data.active.items[0].id;
   app.complete(first, 0);
   assert.throws(() => app.removeExercise(first), /Recorded/);
-  assert.throws(() => app.addExercise(exercise, first), /Recorded/);
   assert.throws(() => app.removeSet(first, 0), /Undo/);
+  const recorded = structuredClone(app.data.active.items[0]);
   app.addExercise(exercise);
+  assert.equal(app.data.active.items.length, 2);
+  assert.deepEqual(app.data.active.items[0], recorded);
   const added = app.data.active.items[1].id;
+  assert.notEqual(added, first);
   app.move(added, -1);
   app.addSet(first);
   app.set(first, 0, { weight: 99 });
