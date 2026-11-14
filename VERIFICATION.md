@@ -10,7 +10,7 @@
 | F04   | Rotation, manual start, resume, explicit discard                             | integration: rotation, snapshot and recovery                                   | Browser recovery                                          |
 | F05   | Cross-plan prefill, fallback, completion/undo, set changes                   | integration: per-set prior results, fallback, reload                           | Browser interaction                                       |
 | F06   | Timestamp rest; restart/skip                                                 | unit timestamp math; integration controlled clock                              | Backgrounding on iPhone                                   |
-| F07   | Jump, defer/reorder, skip, add/remove                                        | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
+| F07   | Drag to reorder, skip, add/remove                                            | integration: recorded-result safeguards, ordering                              | Browser session editing                                   |
 | F08   | Partial finish; before/after review; opt-in plan updates; conflict refusal   | unit plan diffs; integration partial finish, conflict, selective changes       | Browser checkbox workflow                                 |
 | F09   | Historical names/results, previous source dates                              | integration: catalog edits preserve history                                    | Browser history display                                   |
 | F10   | Versioned offline export, preview/confirm restore, boundary validation       | integration: round trip, malformed/reference/version rejection, failed restore | iOS Files download/upload                                 |
@@ -26,7 +26,7 @@
 - Airplane mode cold launch, create/edit plan and machine, complete offline workout.
 - Background/lock, reopen, confirm rest elapsed correctly and active workout recovers.
 - A/B rotation, manual plan choice, discard, partial completion, cross-plan previous values.
-- Reorder/defer/add/remove without relabelling recorded sets; plan targets separate from actuals.
+- Reorder/add/remove without relabelling recorded sets; plan targets separate from actuals.
 - Export to Files/share, restore via file picker, malformed backup leaves data unchanged.
 - Close/reopen online for an app update and verify local data remains intact.
 - Check touch targets, decimal keyboard, scrolling, modal focus and VoiceOver.
@@ -61,3 +61,9 @@ All 35 unit/integration tests and four Chromium system workflows passed. The new
 ## Workout card action placement — 14 November 2026
 
 All 35 unit/integration tests, four Chromium system workflows and code checks passed. The browser assertion verifies Skip belongs to the bottom action row. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.
+
+## Hold and drag workout ordering — 14 November 2026
+
+The two workout movement buttons are replaced by a 450 ms hold-and-drag gesture, with edge scrolling, cancellation and a keyboard alternative. Changes save on drop through the existing application workflow; plans and historical results remain unchanged until an approved plan update. The new adapter is included in the offline shell. Application regression covers both movement directions, persistence and recorded/skipped set preservation. Browser regression covers short-movement cancellation, mouse dragging, native Chromium touch gestures, synthetic touch cancellation/scroll prevention, edge scrolling, keyboard focus and reload recovery. WebKit and physical iPhone gesture validation remain outstanding.
+
+Validation: all 36 unit/integration tests and all five Chromium workflows passed, including native touch dragging and edge scrolling. Version synchronization, architecture/syntax, ESLint, TypeScript, formatting and diff checks passed. WebKit is blocked by the missing host libraries listed above; no physical iPhone test was performed.

@@ -238,3 +238,29 @@ test("F05/F09/F10: timed cardio remains a regular exercise through recovery, his
   assert.equal(restored.data.active.items[0].sets[0].durationSeconds, 600);
   assert.deepEqual(restored.data.sessions, history);
 });
+
+test("F07: reordering in both directions persists results without changing the plan or history", () => {
+  const { app, reopen } = setup(),
+    { a, exercise } = seed(app);
+  app.start(a);
+  app.complete(app.data.active.items[0].id, 0);
+  app.finish([]);
+  app.start(a);
+  app.addExercise(exercise);
+  app.addExercise(exercise);
+  app.complete(app.data.active.items[0].id, 0);
+  app.skip(app.data.active.items[1].id);
+  const before = structuredClone(app.data);
+  const id = app.data.active.items[0].id;
+  app.move(id, 2);
+  assert.deepEqual(app.data.active.items, [
+    before.active.items[1],
+    before.active.items[2],
+    before.active.items[0],
+  ]);
+  assert.deepEqual(reopen().data, app.data);
+  assert.deepEqual(app.data.plans, before.plans);
+  assert.deepEqual(app.data.sessions, before.sessions);
+  app.move(id, -2);
+  assert.deepEqual(app.data.active.items, before.active.items);
+});

@@ -90,7 +90,7 @@ for (const [engine, type] of [
       assert.equal(await card.locator("input").count(), 6);
       assert.deepEqual(
         await card.locator(".exercise-body > .row button").allTextContents(),
-        ["Skip", "+ Set", "↑", "Defer ↓", "Remove"],
+        ["Skip", "+ Set", "Remove"],
       );
       const weight = page.getByLabel("Test press set 1 weight", {
         exact: true,
@@ -887,6 +887,216 @@ for (const [engine, type] of [
       assert.equal(await stored(), afterRemoval);
       await editor.getByRole("button", { name: "Cancel", exact: true }).click();
       assert.equal(await stored(), afterRemoval);
+    } finally {
+      await browser.close();
+    }
+  });
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  test(`${engine}: hold and drag exercises, touch scrolling, cancellation and keyboard reordering`, async () => {
+    const browser = await type.launch();
+    try {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      const page = await context.newPage();
+      const { setup } = await import("./fixtures.js");
+      const { encodeBackup } = await import(
+        "../dist/infrastructure/storage.js"
+      );
+      const { app, clock } = setup();
+      for (const name of ["Press", "Row", "Curl"])
+        app.exercise({ name, number: "" });
+      app.plan({
+        name: "A",
+        rest: 0,
+        items: app.data.exercises.map((e) => app.makeItem(e.id)),
+      });
+      app.start(app.data.plans[0].id);
+      app.complete(app.data.active.items[0].id, 0);
+      app.finish([]);
+      app.start(app.data.plans[0].id);
+      app.complete(app.data.active.items[0].id, 0);
+      app.skip(app.data.active.items[1].id);
+      const initial = structuredClone(app.data);
+      const ids = initial.active.items.map((i) => i.id);
+      await page.goto(url);
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await page.locator("#import-file").setInputFiles({
+        name: "drag.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(encodeBackup(initial, clock.iso())),
+      });
+      await page
+        .getByRole("button", { name: "Replace all data", exact: true })
+        .click();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      await page.clock.install();
+      const cards = page.locator("details.workout-exercise");
+      const order = () =>
+        cards.evaluateAll((elements) =>
+          elements.map((e) => e.dataset.exerciseId),
+        );
+      const stored = () =>
+        page.evaluate(
+          () => JSON.parse(localStorage.getItem("fitty.fitness.v1")).data,
+        );
+      const point = async (index) => {
+        const box = await cards.nth(index).locator("summary").boundingBox();
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      };
+      const first = await point(0);
+      await page.mouse.move(first.x, first.y);
+      await page.mouse.down();
+      await page.mouse.move(first.x, first.y + 25);
+      await page.clock.runFor(500);
+      assert.equal(await page.locator(".exercise-drag-preview").count(), 0);
+      await page.mouse.up();
+      assert.deepEqual(await stored(), initial);
+      const start = await point(0),
+        end = await point(2);
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.clock.runFor(450);
+      assert.equal(await page.locator(".exercise-drag-preview").count(), 1);
+      await page.mouse.move(end.x, end.y + 20);
+      await page.mouse.up();
+      assert.deepEqual(await order(), [ids[1], ids[2], ids[0]]);
+      let data = await stored();
+      assert.deepEqual(data.active.items, [
+        initial.active.items[1],
+        initial.active.items[2],
+        initial.active.items[0],
+      ]);
+      assert.deepEqual(data.plans, initial.plans);
+      assert.deepEqual(data.sessions, initial.sessions);
+      assert.equal(await page.locator(".exercise-drag-preview").count(), 0);
+      const snapshot = await stored();
+      const origin = await point(0),
+        destination = await point(1);
+      await page.mouse.move(origin.x, origin.y);
+      await page.mouse.down();
+      await page.clock.runFor(450);
+      await page.mouse.move(destination.x, destination.y + 20);
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      assert.deepEqual(await order(), [ids[1], ids[2], ids[0]]);
+      assert.deepEqual(await stored(), snapshot);
+      // Real DOM touch events exercise prevention only after a successful hold.
+      const touch = async (type, index, yOffset = 0) =>
+        page.evaluate(
+          ({ type, index, yOffset }) => {
+            const card = document.querySelectorAll("details.workout-exercise")[
+              index
+            ];
+            const rect = (
+              type === "touchmove" ? card : card.querySelector("summary")
+            ).getBoundingClientRect();
+            const event = new Event(type, { bubbles: true, cancelable: true });
+            Object.defineProperty(event, "touches", {
+              value:
+                type === "touchend" || type === "touchcancel"
+                  ? []
+                  : [
+                      {
+                        clientX: rect.left + 30,
+                        clientY: rect.top + rect.height / 2 + yOffset,
+                      },
+                    ],
+            });
+            card.querySelector("summary").dispatchEvent(event);
+            return event.defaultPrevented;
+          },
+          { type, index, yOffset },
+        );
+      await touch("touchstart", 0);
+      assert.equal(await touch("touchmove", 0, 30), false);
+      await page.clock.runFor(450);
+      assert.equal(await page.locator(".exercise-drag-preview").count(), 0);
+      await touch("touchend", 0);
+      await touch("touchstart", 0);
+      await page.clock.runFor(450);
+      assert.equal(await touch("touchmove", 2, 60), true);
+      await touch("touchend", 2);
+      assert.deepEqual(await order(), [ids[2], ids[0], ids[1]]);
+      const touchSaved = await stored();
+      await touch("touchstart", 0);
+      await page.clock.runFor(450);
+      await touch("touchmove", 2, 60);
+      await touch("touchcancel", 2);
+      assert.deepEqual(await order(), [ids[2], ids[0], ids[1]]);
+      assert.deepEqual(await stored(), touchSaved);
+      if (engine === "chromium") {
+        for (const summary of await page
+          .locator("details.workout-exercise[open] > summary")
+          .all())
+          await summary.click();
+        const cdp = await context.newCDPSession(page);
+        const nativeDrag = async (from, to) => {
+          const start = await point(from),
+            end = await point(to);
+          await cdp.send("Input.dispatchTouchEvent", {
+            type: "touchStart",
+            touchPoints: [{ x: start.x, y: start.y, id: 1 }],
+          });
+          await page.clock.runFor(450);
+          assert.equal(await page.locator(".exercise-drag-preview").count(), 1);
+          await cdp.send("Input.dispatchTouchEvent", {
+            type: "touchMove",
+            touchPoints: [
+              { x: end.x, y: end.y + (to > from ? 30 : -30), id: 1 },
+            ],
+          });
+          await cdp.send("Input.dispatchTouchEvent", {
+            type: "touchEnd",
+            touchPoints: [],
+          });
+        };
+        await nativeDrag(0, 1);
+        assert.deepEqual(await order(), [ids[0], ids[2], ids[1]]);
+        await nativeDrag(1, 0);
+        assert.deepEqual(await order(), [ids[2], ids[0], ids[1]]);
+      }
+      await cards.nth(2).locator("summary").focus();
+      await page.keyboard.press("Alt+ArrowUp");
+      assert.deepEqual(await order(), [ids[2], ids[1], ids[0]]);
+      assert.equal(
+        await cards
+          .nth(1)
+          .locator("summary")
+          .evaluate((e) => e === document.activeElement),
+        true,
+      );
+      const beforeScroll = await stored();
+      await cards.last().scrollIntoViewIfNeeded();
+      const scrollStart = await page.evaluate(() => window.scrollY);
+      const edgeStart = await point(2);
+      await page.mouse.move(edgeStart.x, edgeStart.y);
+      await page.mouse.down();
+      await page.clock.runFor(450);
+      await page.mouse.move(edgeStart.x, 839);
+      await page.clock.runFor(160);
+      assert((await page.evaluate(() => window.scrollY)) > scrollStart);
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      assert.deepEqual(await stored(), beforeScroll);
+      assert.deepEqual(await order(), [ids[2], ids[1], ids[0]]);
+      await page.reload();
+      await page.getByRole("button", { name: "Resume workout ↗" }).click();
+      assert.deepEqual(await order(), [ids[2], ids[1], ids[0]]);
+      data = await stored();
+      assert.deepEqual(data.plans, initial.plans);
+      assert.deepEqual(data.sessions, initial.sessions);
+      for (const item of data.active.items)
+        assert.deepEqual(
+          item,
+          initial.active.items.find((i) => i.id === item.id),
+        );
     } finally {
       await browser.close();
     }

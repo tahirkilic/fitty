@@ -576,3 +576,32 @@ details .card {
   padding: 12px 10px 0;
   font-size: 12px;
 }
+
+.workout-exercise {
+  -webkit-touch-callout: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.workout-exercise input {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.workout-exercise summary {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.exercise-dragging {
+  opacity: 0.35;
+  outline: 2px dashed #365b25;
+}
+.exercise-drag-preview {
+  position: fixed;
+  z-index: 1000;
+  pointer-events: none;
+  max-height: 160px;
+  overflow: hidden;
+  margin: 0;
+  box-shadow: 0 12px 32px #0003;
+  outline: 2px solid #365b25;
+  transform: rotate(-1deg);
+}

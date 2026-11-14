@@ -1,3 +1,4 @@
+import { BrowserExerciseDrag } from "./infrastructure/exercise-drag.js";
 import { APP_VERSION, SHELL_CACHE } from "./domain/app-version.js";
 import { Training } from "./application/training.js";
 import { CleverFitMigration } from "./application/clever-fit-migration.js";
@@ -182,14 +183,14 @@ function workout() {
   return (
     heading(
       escape(s.name),
-      "Session changes stay here until you approve plan updates.",
+      "Hold a card, then drag to reorder. Keyboard: Alt + ↑/↓ on a focused header. Session changes stay here until you approve plan updates.",
       button("Finish", "review", "", "dark"),
     ) +
     `<div class="timer row between"><div><span class="eyebrow">REST TIMER</span><br><strong id="rest-value">${minutes(vm.rest)}</strong></div><div class="row">${button("Restart", "timer", "restart", "ghost")}${button("Skip", "timer", "skip", "ghost")}</div></div>` +
     s.items
       .map(
         (item, index) =>
-          `<details class="card workout-exercise" id="item-${item.id}" data-exercise-id="${escape(item.id)}" ${vm.isExerciseOpen(item.id) ? "open" : ""}><summary class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p><p class="muted">${item.sets.filter((set) => set.done).length} of ${item.sets.length} sets completed</p></div><span class="exercise-chevron" aria-hidden="true"></span></summary><div class="exercise-body">${setRows(item)}<div class="row wrap" style="margin-top:18px">${button(item.skipped ? "Return" : "Skip", "skip", item.id, "ghost")}${button("+ Set", "add-set", item.id, "ghost")}${button("↑", "move-up", item.id, "ghost")}${button("Defer ↓", "defer", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}</div></div></details>`,
+          `<details class="card workout-exercise" id="item-${item.id}" data-exercise-id="${escape(item.id)}" ${vm.isExerciseOpen(item.id) ? "open" : ""}><summary class="row exercise-head"><span class="num">${String(index + 1).padStart(2, "0")}</span><div class="grow"><h3>${escape(item.name)}</h3><p class="muted">Machine ${escape(item.number || "—")} ${item.skipped ? "· Skipped today" : ""}</p><p class="muted">${item.sets.filter((set) => set.done).length} of ${item.sets.length} sets completed</p></div><span class="exercise-chevron" aria-hidden="true"></span></summary><div class="exercise-body">${setRows(item)}<div class="row wrap" style="margin-top:18px">${button(item.skipped ? "Return" : "Skip", "skip", item.id, "ghost")}${button("+ Set", "add-set", item.id, "ghost")}${button("Remove", "remove-exercise", item.id, "ghost")}</div></div></details>`,
       )
       .join("") +
     `<section class="card"><label for="session-add">Add an exercise for today</label><select id="session-add" data-action="session-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select></section><div class="row between">${button("Discard workout", "discard", "", "danger")}${button("Review & finish →", "review", "", "dark")}</div>`
@@ -441,8 +442,6 @@ const actions = {
       app.removeSet(id, +index);
   },
   skip: (id) => app.skip(id),
-  "move-up": (id) => app.move(id, -1),
-  defer: (id) => app.move(id, vm.data.active.items.length),
   "session-add": (id) => {
     if (id) app.addExercise(id);
   },
@@ -590,6 +589,18 @@ root.addEventListener("change", async (event) => {
   if ((el.tagName === "SELECT" && el.dataset.action) || vm.error) render();
 });
 if (vm) {
+  new BrowserExerciseDrag(root, (id, position, keyboard) => {
+    const session = vm.data.active;
+    if (!session) return;
+    const index = session.items.findIndex((item) => item.id === id);
+    if (index < 0) return;
+    const name = session.items[index].name;
+    if (index !== position && vm.run(() => app.move(id, position - index)))
+      vm.notice = `Moved ${name} to position ${position + 1}.`;
+    render();
+    if (keyboard)
+      document.getElementById(`item-${id}`)?.querySelector("summary").focus();
+  });
   render();
   setInterval(() => {
     if (vm.data.active) {

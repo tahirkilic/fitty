@@ -271,7 +271,7 @@ Status: first functional preview implemented; release verification remains open.
 
 ## Session exercise actions · 14 November 2026
 
-- F07 (depends on F05): workout cards expose set addition, moving up, deferring and removing. New exercises are appended through the session exercise picker. Recorded sets cannot be removed without undoing completion.
+- F07 (depends on F05): workout cards expose set addition and removing; hold and drag a card to change its position. New exercises are appended through the session exercise picker. Recorded sets cannot be removed without undoing completion.
 - Regression coverage verifies the exact card action list and confirms adding an exercise preserves recorded results and creates a separate session item.
 
 ## Confirm exercise and set deletion · 14 November 2026
@@ -281,4 +281,9 @@ Status: first functional preview implemented; release verification remains open.
 
 ## Workout card action placement · 14 November 2026
 
-- F07: Skip (or Return for skipped exercises) appears in the bottom action row alongside set addition, moving up, deferring and removing. The existing browser action-row assertion covers the placement; skip/return behavior is unchanged.
+- F07: Skip (or Return for skipped exercises) appears in the bottom action row alongside set addition and removing. The existing browser action-row assertion covers the placement; skip/return behavior is unchanged.
+
+## Hold and drag workout ordering · 14 November 2026
+
+- F07 (depends on F05): hold a card for 450 ms, then drag vertically to reorder. Earlier movement cancels the hold and preserves normal scrolling. Active dragging shows a preview and scrolls near viewport edges. Release saves order; Escape, touch cancellation, window blur and page hiding cancel. Inputs/buttons do not start dragging. Alt+Up/Down on a focused header provides keyboard access. No workout move buttons remain.
+- Coverage: application integration checks movement in both directions, reload persistence, recorded/skipped set preservation and unchanged plan/history. Chromium/WebKit workflows cover mouse hold gating, touch scrolling versus dragging, cancellation, keyboard focus and persisted order. Physical iPhone gesture validation remains open.
