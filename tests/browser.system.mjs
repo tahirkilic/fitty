@@ -1135,3 +1135,121 @@ for (const [engine, type] of [
       await browser.close();
     }
   });
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  test(`${engine}: delete history with consent, persistence, empty state and failure recovery`, async () => {
+    const browser = await type.launch();
+    try {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      const page = await context.newPage();
+      const { setup, seed } = await import("./fixtures.js");
+      const { encodeBackup } = await import(
+        "../dist/infrastructure/storage.js"
+      );
+      const { app, clock, tick } = setup(),
+        { a, b } = seed(app);
+      app.start(a);
+      app.complete(app.data.active.items[0].id, 0);
+      app.finish([]);
+      tick(86400000);
+      app.start(b);
+      app.complete(app.data.active.items[0].id, 0);
+      app.finish([]);
+      app.start(a);
+      const before = structuredClone(app.data);
+      await page.goto(url);
+      await page.getByRole("button", { name: "Backup", exact: true }).click();
+      await page.locator("#import-file").setInputFiles({
+        name: "history.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(encodeBackup(before, clock.iso())),
+      });
+      await page
+        .getByRole("button", { name: "Replace all data", exact: true })
+        .click();
+      await page.getByRole("button", { name: "History", exact: true }).click();
+      const stored = () =>
+        page.evaluate(() => localStorage.getItem("fitty.fitness.v1"));
+      const raw = await stored();
+      const entry = page.locator(
+        `[data-session-id="${before.sessions[1].id}"]`,
+      );
+      await entry.locator("summary").click();
+      const message =
+        "Delete “B” from 12.11.2026? This permanently removes its recorded results.";
+      await answerConfirmation(
+        page,
+        entry.getByRole("button", { name: "Delete workout", exact: true }),
+        message,
+        false,
+      );
+      assert.equal(await stored(), raw);
+      assert.equal(await page.locator("[data-session-id]").count(), 2);
+      await entry.locator("summary").click();
+      await page.evaluate(() => {
+        window.savedSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = () => {
+          throw new Error("Quota");
+        };
+      });
+      await answerConfirmation(
+        page,
+        entry.getByRole("button", { name: "Delete workout", exact: true }),
+        message,
+        true,
+      );
+      await page
+        .getByRole("alert")
+        .getByText(/Could not save/)
+        .waitFor();
+      assert.equal(await stored(), raw);
+      assert.equal(await page.locator("[data-session-id]").count(), 2);
+      await page.evaluate(() => {
+        Storage.prototype.setItem = window.savedSetItem;
+        delete window.savedSetItem;
+      });
+      await entry.locator("summary").click();
+      await answerConfirmation(
+        page,
+        entry.getByRole("button", { name: "Delete workout", exact: true }),
+        message,
+        true,
+      );
+      await page
+        .getByText("Workout deleted from history.", { exact: true })
+        .waitFor();
+      assert.equal(await entry.count(), 0);
+      let data = JSON.parse(await stored()).data;
+      assert.deepEqual(data, { ...before, sessions: [before.sessions[0]] });
+      await page.reload();
+      await page.getByRole("button", { name: "History", exact: true }).click();
+      assert.equal(await page.locator("[data-session-id]").count(), 1);
+      const remaining = page.locator("[data-session-id]");
+      await remaining.locator("summary").click();
+      await answerConfirmation(
+        page,
+        remaining.getByRole("button", { name: "Delete workout", exact: true }),
+        "Delete “A” from 11.11.2026? This permanently removes its recorded results.",
+        true,
+      );
+      await page
+        .getByText("Your finished workouts will appear here.", { exact: true })
+        .waitFor();
+      data = JSON.parse(await stored()).data;
+      assert.deepEqual(data, { ...before, sessions: [] });
+      await page.getByRole("button", { name: "Workout", exact: true }).click();
+      assert.equal(
+        await page.locator("details.workout-exercise").count(),
+        before.active.items.length,
+      );
+    } finally {
+      await browser.close();
+    }
+  });

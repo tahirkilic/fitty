@@ -71,3 +71,7 @@ Validation: all 36 unit/integration tests and all five Chromium workflows passed
 ## Exercise completion indicator — 14 November 2026
 
 All 36 unit/integration tests, five Chromium workflows and code checks passed. Browser assertions compare computed number/set-button backgrounds through partial completion, all sets complete, collapsed display, reload and undo. The indicator reuses the existing done class; no persisted fields were added. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.
+
+## Delete individual history entries — 14 November 2026
+
+All 38 unit/integration tests and six Chromium workflows passed. Application coverage verifies deletion persistence, backup round trips, remaining-history/default prefilling, active/unknown ID rejection and atomic failure. Browser coverage verifies confirmation/cancel, visible save failure and retry, preservation of unrelated data, reload and empty-history display. Version, syntax/architecture, lint, type, formatting and diff checks passed. WebKit remains blocked by the host libraries listed above; physical iPhone verification remains open.

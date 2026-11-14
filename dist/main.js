@@ -228,7 +228,7 @@ function history() {
       .sort((a, b) => sessionDay(b).localeCompare(sessionDay(a)))
       .map(
         (s) =>
-          `<details class="card"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map(historyExercise).join("")}</details>`,
+          `<details class="card" data-session-id="${escape(s.id)}"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary><p class="muted" style="margin:15px 0">${s.importSource ? "Imported from Clever Fit · Original time unknown · " : ""}${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${s.items.map(historyExercise).join("")}<div style="margin-top:20px">${button("Delete workout", "delete-session", s.id, "danger")}</div></details>`,
       )
       .join("") +
     (!vm.data.sessions.length
@@ -471,6 +471,19 @@ const actions = {
     ) {
       app.discard();
       vm.tab = "home";
+    }
+  },
+  "delete-session": (id) => {
+    const session = vm.data.sessions.find((entry) => entry.id === id);
+    if (!session) throw new Error("Workout not found in history.");
+    if (
+      confirm(
+        `Delete “${session.name}” from ${date(sessionDay(session))}? This permanently removes its recorded results.`,
+      )
+    ) {
+      vm.notice = "";
+      app.deleteSession(id);
+      vm.notice = "Workout deleted from history.";
     }
   },
   export: exportData,

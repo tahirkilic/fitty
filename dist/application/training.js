@@ -227,6 +227,15 @@ export class Training {
       if (index >= 0) d.next = (index + 1) % d.rotation.length;
     });
   }
+  deleteSession(id) {
+    this.transact((data) => {
+      invariant(
+        data.sessions.some((session) => session.id === id),
+        "Workout not found in history.",
+      );
+      data.sessions = data.sessions.filter((session) => session.id !== id);
+    });
+  }
   changes() {
     return this.data.active ? planChanges(this.data.active) : [];
   }

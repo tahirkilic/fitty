@@ -292,3 +292,8 @@ Status: first functional preview implemented; release verification remains open.
 
 - F05/F07: the workout exercise number uses the same green background as a completed set when every set is done. Partial completion and undone sets keep the normal number background. The indicator is derived from saved set completion and works on collapsed cards and after reload.
 - Regression coverage: Chromium/WebKit workout workflow compares actual computed badge/button colors for partial/all/undone completion, collapsed cards and reload recovery.
+
+## Delete individual history entries · 14 November 2026
+
+- F09 (dependencies: F05/F08): expanded history entries offer Delete workout. A confirmation names the workout/date; cancellation does not mutate data. Confirmed deletion persists atomically, with a visible error on failed storage writes. Other history, plans, catalog, rotation and active session remain unchanged. Future previous-result prefilling ignores deleted sessions, falling back to remaining history or plan defaults. Deleting the final entry shows the empty history state.
+- Coverage: application integration covers removal/reload/backup, fallback prefilling, active-session preservation, unknown/active IDs and failed writes. Chromium/WebKit system coverage verifies confirmation/cancel, visible save failure and retry, remaining entries, reload, empty state and retained active workout.

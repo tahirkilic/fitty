@@ -264,3 +264,57 @@ test("F07: reordering in both directions persists results without changing the p
   app.move(id, -2);
   assert.deepEqual(app.data.active.items, before.active.items);
 });
+
+test("F09: history deletion preserves other data and recalculates future prefilling from remaining history", () => {
+  const { app, clock, tick, reopen } = setup(),
+    { a, b } = seed(app);
+  app.start(a);
+  app.set(app.data.active.items[0].id, 0, { weight: 25, reps: 8 });
+  app.complete(app.data.active.items[0].id, 0);
+  app.finish([]);
+  const older = structuredClone(app.data.sessions[0]);
+  tick(86400000);
+  app.start(b);
+  app.set(app.data.active.items[0].id, 0, { weight: 40, reps: 9 });
+  app.complete(app.data.active.items[0].id, 0);
+  app.finish([]);
+  const deletedId = app.data.sessions[1].id;
+  app.start(a);
+  assert.equal(app.data.active.items[0].sets[0].weight, 40);
+  const before = structuredClone(app.data);
+  app.deleteSession(deletedId);
+  assert.deepEqual(app.data, { ...before, sessions: [older] });
+  assert.deepEqual(reopen().data, app.data);
+  assert.deepEqual(decodeBackup(encodeBackup(app.data, clock.iso())), app.data);
+  app.discard();
+  app.start(b);
+  assert.equal(app.data.active.items[0].sets[0].weight, 25);
+  assert.equal(app.data.active.items[0].sets[0].reps, 8);
+  app.deleteSession(older.id);
+  assert.deepEqual(app.data.sessions, []);
+  app.discard();
+  app.start(a);
+  assert.equal(app.data.active.items[0].sets[0].weight, 0);
+  assert.equal(app.data.active.items[0].sets[0].previous, null);
+});
+test("F09: history deletion rejects unknown/active IDs and failed writes without changing data", () => {
+  const { app, storage, reopen } = setup(),
+    { a, b } = seed(app);
+  app.start(a);
+  app.complete(app.data.active.items[0].id, 0);
+  app.finish([]);
+  app.start(b);
+  const before = structuredClone(app.data);
+  const raw = storage.getItem("fitty.fitness.v1");
+  for (const id of ["missing", app.data.active.id])
+    assert.throws(() => app.deleteSession(id), /not found/);
+  assert.deepEqual(app.data, before);
+  storage.fail = true;
+  assert.throws(
+    () => app.deleteSession(app.data.sessions[0].id),
+    /Could not save/,
+  );
+  assert.deepEqual(app.data, before);
+  assert.equal(storage.getItem("fitty.fitness.v1"), raw);
+  assert.deepEqual(reopen().data, before);
+});
