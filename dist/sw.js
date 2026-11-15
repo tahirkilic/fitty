@@ -1,4 +1,4 @@
-const CACHE = "fitty-shell-0.1.21";
+const CACHE = "fitty-shell-0.1.22";
 const FILES = [
   "./",
   "./index.html",
@@ -9,6 +9,7 @@ const FILES = [
   "./domain/plan-transfer.js",
   "./application/plan-transfer.js",
   "./infrastructure/plan-file.js",
+  "./infrastructure/clipboard.js",
   "./domain/app-version.js",
   "./domain/clever-fit.js",
   "./application/training.js",

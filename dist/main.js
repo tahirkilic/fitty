@@ -3,6 +3,7 @@ import {
   parseNumber,
   formatPrescription,
 } from "./presentation/numbers.js";
+import { BrowserClipboard } from "./infrastructure/clipboard.js";
 import { BrowserExerciseDrag } from "./infrastructure/exercise-drag.js";
 import { APP_VERSION, SHELL_CACHE } from "./domain/app-version.js";
 import { PlanTransfer } from "./application/plan-transfer.js";
@@ -22,6 +23,7 @@ import { AppUpdateViewModel } from "./presentation/app-update-view-model.js";
 
 const clock = { now: () => Date.now(), iso: () => new Date().toISOString() };
 const root = document.getElementById("app");
+const clipboard = new BrowserClipboard(navigator.clipboard);
 const escape = (value) =>
   String(value ?? "").replace(
     /[&<>"']/g,
@@ -237,7 +239,7 @@ function history() {
       .sort((a, b) => sessionDay(b).localeCompare(sessionDay(a)))
       .map(
         (s) =>
-          `<details class="card" data-session-id="${escape(s.id)}"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary>${s.importSource ? '<p class="muted" style="margin-top:15px">Imported from Clever Fit · Original time unknown</p>' : ""}<div class="row between history-actions"><p class="muted">${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${button("Delete workout", "delete-session", s.id, "small danger")}</div>${button("Export as plan", "export-workout", s.id, "small ghost")}${s.items.map(historyExercise).join("")}</details>`,
+          `<details class="card" data-session-id="${escape(s.id)}"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary>${s.importSource ? '<p class="muted" style="margin-top:15px">Imported from Clever Fit · Original time unknown</p>' : ""}<div class="row between history-actions"><p class="muted">${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${button("Delete workout", "delete-session", s.id, "small danger")}</div><div class="row wrap">${button("Export as plan", "export-workout", s.id, "small ghost")}<button class="small ghost" data-action="copy-workout" data-arg="${escape(s.id)}" ${vm.copying ? "disabled" : ""}>${vm.copying ? "Copying…" : "Copy to clipboard"}</button></div>${s.items.map(historyExercise).join("")}</details>`,
       )
       .join("") +
     (!vm.data.sessions.length
@@ -626,9 +628,36 @@ root.addEventListener(
   },
   true,
 );
+function renderCopyState() {
+  const open = new Set(
+    [...root.querySelectorAll("details[data-session-id][open]")].map(
+      (card) => card.dataset.sessionId,
+    ),
+  );
+  render();
+  for (const card of root.querySelectorAll("details[data-session-id]"))
+    if (open.has(card.dataset.sessionId)) card.open = true;
+}
 root.addEventListener("click", (event) => {
   const el = event.target.closest("button[data-action]");
   if (!el || !vm) return;
+  if (el.dataset.action === "copy-workout") {
+    if (vm.copying) return;
+    let text;
+    if (
+      !vm.run(() => {
+        text = encodePlan(planTransfer.exportWorkout(el.dataset.arg));
+      })
+    ) {
+      renderCopyState();
+      return;
+    }
+    // Start the native write within the click gesture, before rendering or awaiting.
+    const pending = vm.copyWorkout(text, clipboard);
+    renderCopyState();
+    void pending.then(renderCopyState);
+    return;
+  }
   if (el.dataset.action === "check-update") {
     void updates?.check();
     return;

@@ -7,6 +7,7 @@ export class ViewModel {
     this.tab = "home";
     this.error = "";
     this.notice = "";
+    this.copying = false;
     this.editor = null;
     this.review = false;
     this.disclosureSessionId = null;
@@ -57,6 +58,23 @@ export class ViewModel {
     } catch (e) {
       this.error = e.message;
       return false;
+    }
+  }
+  /** @param {string} text @param {{write(text: string): Promise<void>}} clipboard */
+  async copyWorkout(text, clipboard) {
+    if (this.copying) return false;
+    this.copying = true;
+    this.notice = "";
+    this.error = "";
+    try {
+      await clipboard.write(text);
+      this.notice = "Workout JSON copied to clipboard.";
+      return true;
+    } catch (error) {
+      this.error = error.message;
+      return false;
+    } finally {
+      this.copying = false;
     }
   }
   editPlan(id) {

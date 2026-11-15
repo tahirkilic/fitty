@@ -68,7 +68,7 @@ New plan files have a dedicated `format: "fitty-plan"`, `schemaVersion: 2`, `uni
 
 ## Export a historical workout as a plan
 
-Expand a workout under **History** and tap **Export as plan**. This works offline and downloads `fitty-workout-YYYY-MM-DD-ID.json` in the same version 2 format used by plan export. Use **Plans → Import plan…** or a plan card's **Import changes…** to import it after preview.
+Expand a workout under **History** and tap **Export as plan**, or choose **Copy to clipboard** to paste the same JSON directly into ChatGPT or another app. Copying keeps expanded history cards open and shows success only after the clipboard write finishes. If clipboard access is unavailable or denied, a visible message offers retry or file export; clipboard access requires browser support and a secure context (HTTPS or localhost). This works offline and downloads `fitty-workout-YYYY-MM-DD-ID.json` in the same version 2 format used by plan export. Use **Plans → Import plan…** or a plan card's **Import changes…** to import it after preview.
 
 - Every historical exercise and set stays in its original order, including repeated exercises, skipped exercises and unfinished sets. Workouts with no completed sets are exportable.
 - Set values are the stored workout weights, repetitions and durations, including null/unknown measurements. Original set `target` objects, `done` flags and previous-result metadata are excluded. Unfinished prefilled values cannot be distinguished from completed performance in this export; interpret it accordingly when assessing training.

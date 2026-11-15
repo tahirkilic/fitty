@@ -1983,3 +1983,149 @@ for (const [engine, type] of [
     }
   });
 }
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+]) {
+  test(`${engine}: F14 copy workout JSON offline, preserve expansion and data, recover from clipboard errors`, async () => {
+    const browser = await type.launch();
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      acceptDownloads: true,
+    });
+    const page = await context.newPage();
+    try {
+      const { setup, seed } = await import("./fixtures.js");
+      const { app } = setup();
+      const { a, exercise } = seed(app);
+      app.start(a);
+      app.set(app.data.active.items[0].id, 0, { weight: 12.75, reps: 8 });
+      app.complete(app.data.active.items[0].id, 0);
+      app.addExercise(exercise);
+      app.finish([]);
+      const before = structuredClone(app.data);
+      await context.addInitScript((data) => {
+        if (!localStorage.getItem("fitty.fitness.v1"))
+          localStorage.setItem(
+            "fitty.fitness.v1",
+            JSON.stringify({ schemaVersion: 1, data }),
+          );
+      }, before);
+      if (engine === "chromium")
+        await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+      else
+        await context.addInitScript(() => {
+          Object.defineProperty(navigator, "clipboard", {
+            configurable: true,
+            value: {
+              writeText: async (text) => {
+                window.copiedWorkout = text;
+              },
+            },
+          });
+        });
+      await page.goto(url);
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
+      if (engine === "webkit")
+        await page.route("**/*", (route) =>
+          route.abort("internetdisconnected"),
+        );
+      else await context.setOffline(true);
+      await page.getByRole("button", { name: "History", exact: true }).click();
+      const entry = page.locator(
+        `[data-session-id="${before.sessions[0].id}"]`,
+      );
+      await entry.locator("summary").click();
+      const stored = () =>
+        page.evaluate(
+          () => JSON.parse(localStorage.getItem("fitty.fitness.v1")).data,
+        );
+      await entry
+        .getByRole("button", { name: "Copy to clipboard", exact: true })
+        .click();
+      await page
+        .getByRole("status")
+        .getByText("Workout JSON copied to clipboard.", { exact: true })
+        .waitFor();
+      assert.notEqual(await entry.getAttribute("open"), null);
+      const copied =
+        engine === "chromium"
+          ? await page.evaluate(() => navigator.clipboard.readText())
+          : await page.evaluate(() => window.copiedWorkout);
+      const file = JSON.parse(copied);
+      assert.equal(file.format, "fitty-plan");
+      assert.equal(file.schemaVersion, 2);
+      assert.equal(file.workout.id, before.sessions[0].id);
+      assert.equal(file.plan.items.length, 2);
+      assert.equal(file.plan.items[0].sets[0].weight, 12.75);
+      assert.equal(file.plan.items[1].skipped, true);
+      const pending = page.waitForEvent("download");
+      await entry
+        .getByRole("button", { name: "Export as plan", exact: true })
+        .click();
+      const { readFile } = await import("node:fs/promises");
+      const downloaded = JSON.parse(
+        await readFile(await (await pending).path(), "utf8"),
+      );
+      delete file.exportedAt;
+      delete downloaded.exportedAt;
+      assert.deepEqual(file, downloaded);
+      assert.deepEqual(await stored(), before);
+      await entry.locator("summary").click(); // Download's existing render collapses history.
+      await page.evaluate(() => {
+        window.savedClipboardWrite = navigator.clipboard.writeText;
+        Object.defineProperty(navigator.clipboard, "writeText", {
+          configurable: true,
+          value: async () => {
+            throw new Error("Denied");
+          },
+        });
+      });
+      await entry
+        .getByRole("button", { name: "Copy to clipboard", exact: true })
+        .click();
+      await page
+        .getByRole("alert")
+        .getByText(/Allow clipboard access/)
+        .waitFor();
+      assert.equal(await page.getByRole("status").count(), 0);
+      assert.notEqual(await entry.getAttribute("open"), null);
+      await page.evaluate(() =>
+        Object.defineProperty(navigator.clipboard, "writeText", {
+          configurable: true,
+          value: undefined,
+        }),
+      );
+      await entry
+        .getByRole("button", { name: "Copy to clipboard", exact: true })
+        .click();
+      await page
+        .getByRole("alert")
+        .getByText(/Clipboard access is unavailable/)
+        .waitFor();
+      await page.evaluate(() =>
+        Object.defineProperty(navigator.clipboard, "writeText", {
+          configurable: true,
+          value: window.savedClipboardWrite,
+        }),
+      );
+      await entry
+        .getByRole("button", { name: "Copy to clipboard", exact: true })
+        .click();
+      await page
+        .getByRole("status")
+        .getByText("Workout JSON copied to clipboard.", { exact: true })
+        .waitFor();
+      assert.equal(await page.getByRole("alert").count(), 0);
+      assert.deepEqual(await stored(), before);
+      await assertHistoryActionPlacement(page, entry);
+    } finally {
+      await browser.close();
+    }
+  });
+}
