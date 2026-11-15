@@ -1668,3 +1668,159 @@ for (const [engine, type] of [
       await browser.close();
     }
   });
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+]) {
+  test(`${engine}: F12 plan export → preview → update → additive offline import`, async () => {
+    const browser = await type.launch();
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      acceptDownloads: true,
+    });
+    const page = await context.newPage();
+    try {
+      const { setup, seed } = await import("./fixtures.js");
+      const { app } = setup();
+      const { a } = seed(app);
+      app.start(a);
+      app.complete(app.data.active.items[0].id, 0);
+      app.finish([]);
+      app.start(a);
+      const before = structuredClone(app.data);
+      await page.goto(url);
+      await page.evaluate(
+        (data) =>
+          localStorage.setItem(
+            "fitty.fitness.v1",
+            JSON.stringify({ schemaVersion: 1, data }),
+          ),
+        before,
+      );
+      await page.reload();
+      await page.evaluate(() => navigator.serviceWorker.ready);
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
+      await page.getByRole("button", { name: "Plans", exact: true }).click();
+      const cardAction = (action) =>
+        page.locator(`[data-action="${action}"][data-arg="${a}"]`);
+      const stored = () =>
+        page.evaluate(
+          () => JSON.parse(localStorage.getItem("fitty.fitness.v1")).data,
+        );
+      const pending = page.waitForEvent("download");
+      await cardAction("export-plan").click();
+      const downloaded = await pending;
+      assert.match(downloaded.suggestedFilename(), /^fitty-plan-A-/);
+      const { readFile } = await import("node:fs/promises");
+      const file = JSON.parse(await readFile(await downloaded.path(), "utf8"));
+      assert.equal(file.format, "fitty-plan");
+      assert(!("sessions" in file));
+      file.plan.name = "Revised A";
+      file.plan.rest = 45;
+      file.plan.items[0].sets[0].weight = 12.75;
+      const upload = () =>
+        page.locator("#plan-file").setInputFiles({
+          name: "plan.json",
+          mimeType: "application/json",
+          buffer: Buffer.from(JSON.stringify(file)),
+        });
+      await cardAction("import-plan").click();
+      await upload();
+      await page
+        .getByRole("dialog")
+        .getByText("12,75 kg × 10", { exact: true })
+        .waitFor();
+      await page.getByRole("button", { name: "Cancel", exact: true }).click();
+      assert.deepEqual(await stored(), before);
+      await cardAction("import-plan").click();
+      await page.locator("#plan-file").setInputFiles({
+        name: "bad.json",
+        mimeType: "application/json",
+        buffer: Buffer.from("{}"),
+      });
+      await page.getByRole("dialog").getByRole("alert").waitFor();
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Update plan", exact: true })
+          .count(),
+        0,
+      );
+      assert.deepEqual(await stored(), before);
+      await upload();
+      await page
+        .getByRole("button", { name: "Update plan", exact: true })
+        .waitFor();
+      await page.evaluate(() => {
+        window.savedSetItem = Storage.prototype.setItem;
+        Storage.prototype.setItem = () => {
+          throw new Error("Quota");
+        };
+      });
+      await page
+        .getByRole("button", { name: "Update plan", exact: true })
+        .click();
+      await page
+        .getByRole("dialog")
+        .getByRole("alert")
+        .getByText(/Could not save/)
+        .waitFor();
+      assert.deepEqual(await stored(), before);
+      await page.evaluate(() => {
+        Storage.prototype.setItem = window.savedSetItem;
+        delete window.savedSetItem;
+      });
+      await page
+        .getByRole("button", { name: "Update plan", exact: true })
+        .click();
+      const updated = await stored();
+      assert.equal(updated.plans[0].name, "Revised A");
+      assert.equal(updated.plans[0].version, 2);
+      for (const key of ["sessions", "active", "exercises", "rotation", "next"])
+        assert.deepEqual(updated[key], before[key]);
+      await page.reload();
+      await page.getByRole("button", { name: "Plans", exact: true }).click();
+      if (engine === "webkit")
+        await page.route("**/*", (route) =>
+          route.abort("internetdisconnected"),
+        );
+      else await context.setOffline(true);
+      await page
+        .getByRole("button", { name: "Import plan…", exact: true })
+        .click();
+      file.exercises[0].number = "999";
+      await upload();
+      const mapping = page
+        .getByRole("dialog")
+        .locator('[data-field="plan-mapping"]');
+      assert.equal(await mapping.inputValue(), "new");
+      await mapping.selectOption(before.exercises[0].id);
+      await page
+        .getByRole("dialog")
+        .getByText(/0 new machine records/)
+        .waitFor();
+      await page
+        .getByRole("button", { name: "Add imported plan", exact: true })
+        .click();
+      const after = await stored();
+      assert.equal(after.plans.length, 3);
+      assert.equal(after.plans[2].name, "Revised A (2)");
+      assert.deepEqual(after.rotation, before.rotation);
+      assert.deepEqual(after.exercises, before.exercises);
+      assert.equal(after.plans[2].items[0].number, "12");
+      assert.deepEqual(after.sessions, before.sessions);
+      assert.deepEqual(after.active, before.active);
+      assert(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth <= innerWidth,
+        ),
+      );
+    } finally {
+      await browser.close();
+    }
+  });
+}

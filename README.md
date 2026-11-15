@@ -52,6 +52,20 @@ An installation from before this update feature may need one final online launch
 
 Backups use schema version 1, with application version, kilogram units, UTC export time, stable IDs, and the complete dataset. Clever Fit imports retain optional historical dates, timed/unknown measurements, and source mappings in subsequent backups.
 
+## Export and import individual plans
+
+On **Plans**, each plan card offers **Export plan** and **Import changes…**. The **Import plan…** action next to **New plan** adds a separate plan, including in an empty notebook.
+
+- Export downloads `fitty-plan-NAME-YYYY-MM-DD.json` with the plan identity/version, rest duration, ordered exercises, current machine names/numbers/types and per-set targets, including timed sets. It contains no workout history, active session or rotation. Upload it to ChatGPT to review or revise the plan; use a full backup for progress analysis.
+- **Import changes…** selects the destination card's plan. Before confirming **Update plan**, review the full ordered before/after prescriptions and machine mappings. A different source plan or version produces a warning. Updating retains the destination plan ID and increments its version. If the destination changes while the preview is open, reopen the import to review it again.
+- **Import plan…** previews and adds an independent plan with fresh plan/item IDs and version 1. Name conflicts receive `(2)`, `(3)`, etc. Add it to rotation explicitly when ready. Importing the same file again deliberately creates another separate plan.
+- An existing machine is automatically reused only when its ID, name, number and type match an unarchived local record. Otherwise the default creates a new machine. You can explicitly select a compatible existing machine; its current details are kept. Import never modifies a shared catalog record. Different equipment should remain separate so previous results are not mixed.
+- Active and historical workouts retain their snapshots. Existing rotation order and next position stay unchanged. An active workout whose source plan was updated must finish without applying its older plan changes.
+- Previous completed workout results still take precedence over imported plan targets during prefilling. Targets are preserved separately; importing a higher weight does not force that weight into the next session.
+- Preview numbers use German decimal commas. JSON measurements use standard numeric values with decimal points. Invalid files, cancellation and failed saves leave existing data intact. Files are limited to 10 MB. Export/import works offline after the app shell is cached.
+
+Plan files have a dedicated `format: "fitty-plan"`, `schemaVersion: 1`, `units: "kg"`, `exportedAt` UTC timestamp, `appVersion`, `plan` and `exercises`. The plan uses the existing plan/item/target field names; `exercises` contains only referenced catalog records. Import validates references, identities, types and values, and selects only portable fields, dropping internal migration metadata and any extra history fields. Full-backup restore and plan import use separate file pickers and formats. The existing backup/storage schema remains unchanged.
+
 ## Import from Clever Fit
 
 1. Download a Fitty backup before the first import.

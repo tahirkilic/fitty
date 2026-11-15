@@ -12,6 +12,10 @@ export class ViewModel {
     this.disclosureSessionId = null;
     this.expandedExercises = new Set();
     this.importData = null;
+    this.planImport = null;
+    this.planImportTarget = null;
+    this.planMappings = {};
+    this.planImportVersion = null;
     this.cleverSource = null;
     this.cleverChoices = { mappings: {}, references: {} };
   }

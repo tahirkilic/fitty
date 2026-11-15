@@ -5,6 +5,8 @@ import {
 } from "./presentation/numbers.js";
 import { BrowserExerciseDrag } from "./infrastructure/exercise-drag.js";
 import { APP_VERSION, SHELL_CACHE } from "./domain/app-version.js";
+import { PlanTransfer } from "./application/plan-transfer.js";
+import { encodePlan, decodePlan } from "./infrastructure/plan-file.js";
 import { Training } from "./application/training.js";
 import { CleverFitMigration } from "./application/clever-fit-migration.js";
 import { parseCleverFit } from "./infrastructure/clever-fit.js";
@@ -43,6 +45,7 @@ const minutes = (seconds) =>
 let vm,
   app,
   migration,
+  planTransfer,
   updates,
   offlineReady = false;
 try {
@@ -51,6 +54,7 @@ try {
   );
   vm = new ViewModel(app, clock);
   migration = new CleverFitMigration(app);
+  planTransfer = new PlanTransfer(app);
 } catch (error) {
   root.innerHTML = `<main class="splash"><h1>Unable to open your data</h1><p>${escape(error.message)}</p><p>Existing storage has been kept. Do not clear website data. Export the raw data below for recovery.</p><button id="recover">Download recovery file</button></main>`;
   document.getElementById("recover").onclick = () =>
@@ -128,13 +132,13 @@ function plans() {
     heading(
       "A plan for each visit.",
       "Rotate in visit order, with room to adapt on the day.",
-      button("+ New plan", "new-plan", "", "dark"),
+      `<div class="row wrap">${button("Import plan…", "import-plan", "", "ghost")}${button("+ New plan", "new-plan", "", "dark")}</div>`,
     ) +
     d.plans
       .filter((p) => !p.archived)
       .map((p) => {
         const reason = vm.planDeletionReason(p.id);
-        return `<section class="card"><div class="row between"><div><span class="eyebrow muted">${p.rest}s REST · VERSION ${p.version}</span><h2 style="margin-top:8px">${escape(p.name)}</h2></div>${button("Start ↗", "start", p.id, "primary")}</div><p class="muted" style="margin:14px 0">${p.items.map((i) => escape(i.name)).join(" · ") || "No exercises yet"}</p><div class="row wrap">${button("Edit plan", "edit-plan", p.id, "ghost")}${button("Duplicate", "duplicate", p.id, "ghost")}${button("Archive", "archive-plan", p.id, "ghost")}<button class="danger" data-action="delete-plan" data-arg="${escape(p.id)}" ${reason ? `disabled aria-describedby="delete-plan-${escape(p.id)}"` : ""}>Delete plan</button></div>${reason ? `<p class="muted" id="delete-plan-${escape(p.id)}" style="margin-top:12px">${escape(reason)}</p>` : ""}</section>`;
+        return `<section class="card"><div class="row between"><div><span class="eyebrow muted">${p.rest}s REST · VERSION ${p.version}</span><h2 style="margin-top:8px">${escape(p.name)}</h2></div>${button("Start ↗", "start", p.id, "primary")}</div><p class="muted" style="margin:14px 0">${p.items.map((i) => escape(i.name)).join(" · ") || "No exercises yet"}</p><div class="row wrap">${button("Edit plan", "edit-plan", p.id, "ghost")}${button("Export plan", "export-plan", p.id, "ghost")}${button("Import changes…", "import-plan", p.id, "ghost")}${button("Duplicate", "duplicate", p.id, "ghost")}${button("Archive", "archive-plan", p.id, "ghost")}<button class="danger" data-action="delete-plan" data-arg="${escape(p.id)}" ${reason ? `disabled aria-describedby="delete-plan-${escape(p.id)}"` : ""}>Delete plan</button></div>${reason ? `<p class="muted" id="delete-plan-${escape(p.id)}" style="margin-top:12px">${escape(reason)}</p>` : ""}</section>`;
       })
       .join("") +
     `<section class="card"><h3>Rotation order</h3><p class="muted" style="margin:8px 0">Completed visits advance the rotation. Discarded visits do not.</p>${d.rotation.map((id) => `<div class="list-row"><div class="grow">${escape(d.plans.find((p) => p.id === id).name)}</div>${button("↑", "rotation-up", id, "small ghost")}${button("Remove", "rotation-remove", id, "small ghost")}</div>`).join("")}<label for="rotation-add">Add a plan to the rotation</label><select id="rotation-add" data-action="rotation-add"><option value="">Choose a plan…</option>${d.plans
@@ -255,7 +259,56 @@ function planModal() {
   return `<h2>${p.id ? "Edit plan" : "Create a plan"}</h2><label for="plan-name">Plan name</label><input id="plan-name" value="${escape(p.name)}" data-field="plan-name" placeholder="e.g. Upper body A"><label for="plan-rest">Rest between sets (seconds, 0 to disable)</label><input id="plan-rest" type="number" min="0" step="1" value="${p.rest}" data-field="plan-rest">${p.items.map((i, index) => `<section class="card" style="margin-top:18px"><div class="row between"><h3>${escape(i.name)}</h3><div class="row">${button("↑", "plan-up", i.id, "small ghost")}${button("×", "plan-remove", i.id, "small ghost")}</div></div>${setRows(i, true)}<div style="margin-top:12px">${button("+ Set", "plan-add-set", i.id, "ghost")}</div></section>`).join("")}<label for="plan-add">Add an exercise</label><select id="plan-add" data-action="plan-add"><option value="">Choose a machine…</option>${exerciseOptions()}</select>${!vm.data.exercises.some((e) => !e.archived) ? '<p class="muted">Add machines in Exercises first.</p>' : ""}<footer class="row between">${button("Cancel", "close", "", "ghost")}${button("Save plan", "save-plan", "", "dark")}</footer>`;
 }
 let exerciseEditor = null;
+function planImportModal() {
+  const file = vm.planImport.file;
+  const target = vm.data.plans.find((p) => p.id === vm.planImportTarget);
+  const title = target
+    ? `Import changes into “${target.name}”`
+    : "Import a new plan";
+  const picker = `<label for="plan-file">Choose a Fitty plan JSON file</label><input type="file" id="plan-file" accept="application/json,.json">`;
+  if (!file)
+    return `<h2>${escape(title)}</h2>${picker}<footer>${button("Cancel", "close", "", "ghost")}</footer>`;
+  const preview = planTransfer.preview(
+    file,
+    vm.planImportTarget,
+    vm.planMappings,
+  );
+  const showPlan = (plan, incoming = false) =>
+    `<h3>${escape(plan.name)}</h3><p>${plan.rest}s rest</p><ol>${plan.items
+      .map((item) => {
+        const mapping = incoming
+          ? preview.exercises.find((e) => e.source.id === item.exerciseId)
+          : null;
+        const machine = mapping ? mapping.existing || mapping.source : item;
+        return `<li><strong>${escape(machine.name)}${machine.number ? ` · #${escape(machine.number)}` : ""}</strong><ol>${item.sets.map((set) => `<li>${escape(results(set, item.kind))}</li>`).join("")}</ol></li>`;
+      })
+      .join("")}</ol>`;
+  return `<h2>${escape(title)}</h2>${preview.stale ? '<p class="message">This file comes from a different plan or version. Review all differences before updating.</p>' : ""}
+    <p>${target ? "The selected plan will be updated." : "A separate plan will be added. Conflicting names get a numeric suffix."} ${preview.newExercises} new machine records. Workouts and rotation are preserved.</p>
+    <h3>Exercise and machine matching</h3><p class="muted">Verified identities are reused. Choose an existing machine only if it is the same equipment. Existing machine details are kept.</p>
+    ${preview.exercises
+      .map(
+        ({ source, choice }) =>
+          `<label>${escape(source.name)}${source.number ? ` · #${escape(source.number)}` : ""}<select data-field="plan-mapping" data-key="${escape(source.id)}"><option value="new" ${choice === "new" ? "selected" : ""}>Create a new record</option>${vm.data.exercises
+            .filter(
+              (e) =>
+                !e.archived &&
+                (e.kind || "strength") === (source.kind || "strength"),
+            )
+            .map(
+              (e) =>
+                `<option value="${escape(e.id)}" ${choice === e.id ? "selected" : ""}>${escape(e.name)}${e.number ? ` · #${escape(e.number)}` : ""}</option>`,
+            )
+            .join("")}</select></label>`,
+      )
+      .join("")}
+    ${target ? `<section class="card"><h3>Before · current plan</h3>${showPlan(target)}</section>` : ""}
+    <section class="card"><h3>After · imported plan</h3>${showPlan(file.plan, true)}</section>
+    <p class="muted">Previous workout results still take precedence over plan targets when prefilling your next workout.${target ? " An active workout keeps its snapshot; finish it without plan updates if its source version changed." : " Add the new plan to rotation when ready."}</p>
+    ${picker}<footer class="row wrap">${button("Cancel", "close", "", "ghost")}${button(target ? "Update plan" : "Add imported plan", "confirm-plan-import", "", "dark")}</footer>`;
+}
 function modal() {
+  if (vm.planImport) return planImportModal();
   if (vm.editor) return planModal();
   if (exerciseEditor) {
     const e = exerciseEditor;
@@ -345,6 +398,35 @@ const actions = {
     vm.notice = "";
   },
   "new-plan": () => vm.editPlan(),
+  "export-plan": (id) => {
+    const file = planTransfer.export(id);
+    const name =
+      file.plan.name.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 60) || "plan";
+    download(
+      encodePlan(file),
+      `fitty-plan-${name}-${clock.iso().slice(0, 10)}.json`,
+    );
+  },
+  "import-plan": (id) => {
+    vm.planImport = { file: null };
+    vm.planImportTarget = id || null;
+    vm.planMappings = {};
+    vm.planImportVersion = null;
+  },
+  "confirm-plan-import": () => {
+    planTransfer.import(
+      vm.planImport.file,
+      vm.planImportTarget,
+      vm.planMappings,
+      vm.planImportVersion,
+    );
+    const updating = !!vm.planImportTarget;
+    vm.planImport = null;
+    vm.tab = "plans";
+    vm.notice = updating
+      ? "Plan updated. Existing workouts were preserved."
+      : "Plan imported. Add it to your rotation when ready.";
+  },
   "edit-plan": (id) => vm.editPlan(id),
   exercise: (id) => {
     exerciseEditor = id
@@ -352,6 +434,10 @@ const actions = {
       : { name: "", number: "" };
   },
   close: () => {
+    vm.planImport = null;
+    vm.planMappings = {};
+    vm.planImportTarget = null;
+    vm.planImportVersion = null;
     vm.editor = null;
     exerciseEditor = null;
     vm.review = false;
@@ -557,6 +643,30 @@ root.addEventListener("click", (event) => {
 root.addEventListener("change", async (event) => {
   const el = event.target;
   if (!vm) return;
+  if (el.id === "plan-file") {
+    try {
+      const file = el.files[0];
+      if (!file) return;
+      vm.planImport.file = null;
+      if (file.size > 10000000)
+        throw new Error("Plan file is too large (10 MB limit).");
+      const pendingImport = vm.planImport;
+      const decoded = decodePlan(await file.text());
+      if (vm.planImport !== pendingImport) return;
+      planTransfer.preview(decoded, vm.planImportTarget);
+      vm.planImport.file = decoded;
+      vm.planMappings = {};
+      vm.planImportVersion =
+        vm.data.plans.find((p) => p.id === vm.planImportTarget)?.version ??
+        null;
+      vm.error = "";
+    } catch (error) {
+      if (vm.planImport) vm.planImport.file = null;
+      vm.error = error.message;
+    }
+    render();
+    return;
+  }
   if (el.id === "clever-file") {
     try {
       const file = el.files[0];
@@ -604,7 +714,8 @@ root.addEventListener("change", async (event) => {
       if (el.inputMode === "decimal") el.value = formatNumber(value);
       return value;
     };
-    if (f === "clever-mapping")
+    if (f === "plan-mapping") vm.planMappings[el.dataset.key] = el.value;
+    else if (f === "clever-mapping")
       vm.cleverChoices.mappings[el.dataset.key] = el.value;
     else if (f === "clever-reference")
       vm.cleverChoices.references[el.dataset.name] = el.value;
@@ -616,7 +727,12 @@ root.addEventListener("change", async (event) => {
     else if (f === "actual")
       app.set(id, n, { [key]: el.value.trim() === "" ? null : numeric() });
   });
-  if ((el.tagName === "SELECT" && el.dataset.action) || vm.error || hadError)
+  if (
+    (el.tagName === "SELECT" &&
+      (el.dataset.action || el.dataset.field === "plan-mapping")) ||
+    vm.error ||
+    hadError
+  )
     render();
 });
 if (vm) {
