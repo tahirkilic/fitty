@@ -1692,6 +1692,10 @@ for (const [engine, type] of [
       app.start(a);
       const before = structuredClone(app.data);
       await page.goto(url);
+      // Complete initial installation before the fixture reload.
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
       await page.evaluate(
         (data) =>
           localStorage.setItem(
@@ -1701,7 +1705,6 @@ for (const [engine, type] of [
         before,
       );
       await page.reload();
-      await page.evaluate(() => navigator.serviceWorker.ready);
       await page.waitForFunction(
         () => navigator.serviceWorker.controller !== null,
       );
