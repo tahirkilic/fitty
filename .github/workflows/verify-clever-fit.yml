@@ -28,6 +28,7 @@ jobs:
       - name: Install browser engines
         run: npx playwright install --with-deps chromium webkit
       - name: System test (Chromium + WebKit)
+        timeout-minutes: 3
         run: |
           python3 -m http.server 4173 --directory dist > /tmp/fitness-http.log 2>&1 &
           BASE_URL=http://127.0.0.1:4173 npm run test:system
