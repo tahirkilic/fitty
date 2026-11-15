@@ -43,7 +43,7 @@ test("F12 domain: rejects invalid schemas, references, measurements, duplicates 
       f.format = "backup";
     },
     (f) => {
-      f.schemaVersion = 2;
+      f.schemaVersion = 99;
     },
     (f) => {
       f.units = "lb";

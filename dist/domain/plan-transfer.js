@@ -1,9 +1,10 @@
 import { clone, emptyData, invariant, validateData } from "./model.js";
+import { sessionDay } from "./clever-fit.js";
 
 /** Validate and select only portable plan fields. */
 export function validatePlanFile(input) {
   invariant(
-    input?.format === "fitty-plan" && input.schemaVersion === 1,
+    input?.format === "fitty-plan" && [1, 2].includes(input.schemaVersion),
     "Unsupported plan file. Choose a Fitty plan export, not a full backup.",
   );
   invariant(
@@ -35,6 +36,9 @@ export function validatePlanFile(input) {
       exerciseId: i.exerciseId,
       name: i.name,
       number: i.number,
+      ...(input.schemaVersion === 2 && i.skipped !== undefined
+        ? { skipped: i.skipped }
+        : {}),
       ...(i.kind !== undefined ? { kind: i.kind } : {}),
       sets: Array.isArray(i.sets)
         ? i.sets.map((s) => ({
@@ -53,19 +57,28 @@ export function validatePlanFile(input) {
     "Plan file contains unrelated exercises.",
   );
   for (const item of plan.items) {
+    invariant(
+      item.skipped === undefined || typeof item.skipped === "boolean",
+      "Invalid exercise skipped status.",
+    );
     const e = exercises.find((e) => e.id === item.exerciseId);
     invariant(
       (item.kind || "strength") === (e.kind || "strength"),
       "Exercise types do not match.",
     );
   }
+  const workout =
+    input.schemaVersion === 2 && input.workout !== undefined
+      ? validateWorkoutContext(input.workout)
+      : undefined;
   return clone({
     format: "fitty-plan",
-    schemaVersion: 1,
+    schemaVersion: input.schemaVersion,
     units: "kg",
     exportedAt: input.exportedAt,
     plan,
     exercises,
+    ...(workout ? { workout } : {}),
   });
 }
 
@@ -82,11 +95,116 @@ export function portablePlan(data, id, exportedAt) {
   }
   return validatePlanFile({
     format: "fitty-plan",
-    schemaVersion: 1,
+    schemaVersion: 2,
     units: "kg",
     exportedAt,
     plan,
     exercises,
+  });
+}
+
+function validateWorkoutContext(value) {
+  invariant(
+    value && typeof value === "object" && !Array.isArray(value),
+    "Invalid workout context.",
+  );
+  invariant(
+    typeof value.id === "string" &&
+      value.id.length > 0 &&
+      value.id.length < 10000,
+    "Invalid workout ID.",
+  );
+  invariant(
+    typeof value.date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(value.date) &&
+      Number.isFinite(Date.parse(value.date + "T00:00:00Z")) &&
+      new Date(value.date + "T00:00:00Z").toISOString().slice(0, 10) ===
+        value.date,
+    "Invalid workout date.",
+  );
+  const result = { id: value.id, date: value.date };
+  for (const key of ["startedAt", "finishedAt"]) {
+    if (value[key] === undefined) continue;
+    invariant(
+      typeof value[key] === "string" && Number.isFinite(Date.parse(value[key])),
+      "Invalid workout timestamp.",
+    );
+    result[key] = value[key];
+  }
+  return result;
+}
+
+/** A historical snapshot becomes a template without completion flags or original targets. */
+export function portableWorkout(data, id, exportedAt) {
+  const session = data.sessions.find((s) => s.id === id);
+  invariant(session, "Workout not found in history.");
+  const exercises = [];
+  const snapshots = new Map();
+  const reservedIds = new Set(session.items.map((item) => item.exerciseId));
+  const usedIds = new Set();
+  const items = session.items.map((item) => {
+    const key = JSON.stringify([
+      item.exerciseId,
+      item.name,
+      item.number,
+      item.kind || "strength",
+    ]);
+    let exerciseId = snapshots.get(key);
+    if (!exerciseId) {
+      exerciseId = item.exerciseId;
+      if (usedIds.has(exerciseId)) {
+        const base = `snapshot:${session.id}:${item.id}`;
+        exerciseId = base;
+        let suffix = 2;
+        while (reservedIds.has(exerciseId) || usedIds.has(exerciseId))
+          exerciseId = `${base}:${suffix++}`;
+      }
+      snapshots.set(key, exerciseId);
+      usedIds.add(exerciseId);
+      exercises.push({
+        id: exerciseId,
+        name: item.name,
+        number: item.number,
+        ...(item.kind ? { kind: item.kind } : {}),
+        archived: false,
+      });
+    }
+    return {
+      id: item.id,
+      exerciseId,
+      name: item.name,
+      number: item.number,
+      ...(item.kind ? { kind: item.kind } : {}),
+      skipped: item.skipped,
+      sets: item.sets.map((set) => ({
+        weight: set.weight,
+        reps: set.reps,
+        ...(set.durationSeconds !== undefined
+          ? { durationSeconds: set.durationSeconds }
+          : {}),
+      })),
+    };
+  });
+  const day = sessionDay(session);
+  return validatePlanFile({
+    format: "fitty-plan",
+    schemaVersion: 2,
+    units: "kg",
+    exportedAt,
+    plan: {
+      id: `workout:${session.id}`,
+      version: 1,
+      name: `${session.name} — ${day}`,
+      rest: session.rest,
+      items,
+    },
+    exercises,
+    workout: {
+      id: session.id,
+      date: day,
+      ...(session.startedAt ? { startedAt: session.startedAt } : {}),
+      ...(session.finishedAt ? { finishedAt: session.finishedAt } : {}),
+    },
   });
 }
 

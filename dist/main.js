@@ -237,7 +237,7 @@ function history() {
       .sort((a, b) => sessionDay(b).localeCompare(sessionDay(a)))
       .map(
         (s) =>
-          `<details class="card" data-session-id="${escape(s.id)}"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary>${s.importSource ? '<p class="muted" style="margin-top:15px">Imported from Clever Fit · Original time unknown</p>' : ""}<div class="row between history-actions"><p class="muted">${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${button("Delete workout", "delete-session", s.id, "small danger")}</div>${s.items.map(historyExercise).join("")}</details>`,
+          `<details class="card" data-session-id="${escape(s.id)}"><summary>${escape(s.name)} <span class="muted">· ${date(sessionDay(s))}</span></summary>${s.importSource ? '<p class="muted" style="margin-top:15px">Imported from Clever Fit · Original time unknown</p>' : ""}<div class="row between history-actions"><p class="muted">${s.items.reduce((n, i) => n + i.sets.filter((x) => x.done).length, 0)} recorded sets</p>${button("Delete workout", "delete-session", s.id, "small danger")}</div>${button("Export as plan", "export-workout", s.id, "small ghost")}${s.items.map(historyExercise).join("")}</details>`,
       )
       .join("") +
     (!vm.data.sessions.length
@@ -280,10 +280,10 @@ function planImportModal() {
           ? preview.exercises.find((e) => e.source.id === item.exerciseId)
           : null;
         const machine = mapping ? mapping.existing || mapping.source : item;
-        return `<li><strong>${escape(machine.name)}${machine.number ? ` · #${escape(machine.number)}` : ""}</strong><ol>${item.sets.map((set) => `<li>${escape(results(set, item.kind))}</li>`).join("")}</ol></li>`;
+        return `<li><strong>${escape(machine.name)}${machine.number ? ` · #${escape(machine.number)}` : ""}</strong>${incoming && item.skipped ? '<span class="muted"> · Skipped in source workout</span>' : ""}<ol>${item.sets.map((set) => `<li>${escape(results(set, item.kind))}</li>`).join("")}</ol></li>`;
       })
       .join("")}</ol>`;
-  return `<h2>${escape(title)}</h2>${preview.stale ? '<p class="message">This file comes from a different plan or version. Review all differences before updating.</p>' : ""}
+  return `<h2>${escape(title)}</h2>${file.workout ? `<p class="message">Source workout: ${date(file.workout.date)}. Includes every exercise and set, including skipped exercises and unfinished prefilled values. Set completion and original targets are not included. Imported plans start with fresh completion states.</p>` : ""}${preview.stale ? '<p class="message">This file comes from a different plan or version. Review all differences before updating.</p>' : ""}
     <p>${target ? "The selected plan will be updated." : "A separate plan will be added. Conflicting names get a numeric suffix."} ${preview.newExercises} new machine records. Workouts and rotation are preserved.</p>
     <h3>Exercise and machine matching</h3><p class="muted">Verified identities are reused. Choose an existing machine only if it is the same equipment. Existing machine details are kept.</p>
     ${preview.exercises
@@ -398,6 +398,13 @@ const actions = {
     vm.notice = "";
   },
   "new-plan": () => vm.editPlan(),
+  "export-workout": (id) => {
+    const file = planTransfer.exportWorkout(id);
+    download(
+      encodePlan(file),
+      `fitty-workout-${file.workout.date}-${id.replace(/[^a-zA-Z0-9_-]+/g, "-").slice(0, 60)}.json`,
+    );
+  },
   "export-plan": (id) => {
     const file = planTransfer.export(id);
     const name =

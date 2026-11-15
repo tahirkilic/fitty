@@ -1824,3 +1824,156 @@ for (const [engine, type] of [
     }
   });
 }
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+]) {
+  test(`${engine}: F13 history exports all sets as a dated plan without targets or completion flags`, async () => {
+    const browser = await type.launch();
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      isMobile: true,
+      hasTouch: true,
+      acceptDownloads: true,
+    });
+    const page = await context.newPage();
+    try {
+      const { setup, seed } = await import("./fixtures.js");
+      const { app } = setup();
+      const { a, b, exercise } = seed(app);
+      app.exercise({ name: "Cross trainer", number: "7", kind: "cardio" });
+      app.start(a);
+      app.set(app.data.active.items[0].id, 0, { weight: 12.75, reps: 8 });
+      app.complete(app.data.active.items[0].id, 0);
+      app.addExercise(exercise);
+      app.addExercise(app.data.exercises[1].id);
+      app.set(app.data.active.items[2].id, 0, { durationSeconds: 90 });
+      app.finish([]);
+      app.start(a);
+      app.finish([]); // A fully skipped workout is exportable too.
+      const noResultsId = app.data.sessions[1].id;
+      app.exercise({ name: "Renamed press", number: "99" }, exercise);
+      app.start(b);
+      const before = structuredClone(app.data);
+      await page.goto(url);
+      await page.evaluate(
+        (data) =>
+          localStorage.setItem(
+            "fitty.fitness.v1",
+            JSON.stringify({ schemaVersion: 1, data }),
+          ),
+        before,
+      );
+      await page.reload();
+      await page.evaluate(() => navigator.serviceWorker.ready);
+      await page.waitForFunction(
+        () => navigator.serviceWorker.controller !== null,
+      );
+      if (engine === "webkit")
+        await page.route("**/*", (route) =>
+          route.abort("internetdisconnected"),
+        );
+      else await context.setOffline(true);
+      await page.getByRole("button", { name: "History", exact: true }).click();
+      const stored = () =>
+        page.evaluate(
+          () => JSON.parse(localStorage.getItem("fitty.fitness.v1")).data,
+        );
+      const entry = page.locator(
+        `[data-session-id="${before.sessions[0].id}"]`,
+      );
+      await entry.locator("summary").click();
+      await assertHistoryActionPlacement(page, entry);
+      const pending = page.waitForEvent("download");
+      await entry
+        .getByRole("button", { name: "Export as plan", exact: true })
+        .click();
+      const downloaded = await pending;
+      assert.match(
+        downloaded.suggestedFilename(),
+        /^fitty-workout-2026-11-11-/,
+      );
+      const { readFile } = await import("node:fs/promises");
+      const bytes = await readFile(await downloaded.path());
+      const file = JSON.parse(bytes);
+      assert.equal(file.format, "fitty-plan");
+      assert.equal(file.schemaVersion, 2);
+      assert.equal(file.workout.id, before.sessions[0].id);
+      assert.equal(file.workout.date, "2026-11-11");
+      assert.deepEqual(
+        file.plan.items.map((i) => i.sets.length),
+        [3, 3, 1],
+      );
+      assert.deepEqual(
+        file.plan.items.map((i) => i.skipped),
+        [false, true, true],
+      );
+      assert.equal(file.plan.items[0].sets[0].weight, 12.75);
+      assert.equal(file.plan.items[0].sets[1].weight, 0);
+      assert.equal(file.exercises[0].number, "12");
+      for (const item of file.plan.items)
+        for (const set of item.sets) {
+          assert(!("target" in set));
+          assert(!("done" in set));
+        }
+      assert.deepEqual(await stored(), before);
+      const skippedEntry = page.locator(`[data-session-id="${noResultsId}"]`);
+      await skippedEntry.locator("summary").click();
+      const skippedPending = page.waitForEvent("download");
+      await skippedEntry
+        .getByRole("button", { name: "Export as plan", exact: true })
+        .click();
+      const skippedFile = JSON.parse(
+        await readFile(await (await skippedPending).path(), "utf8"),
+      );
+      assert.equal(skippedFile.plan.items[0].sets.length, 3);
+      assert.equal(skippedFile.plan.items[0].skipped, true);
+      assert.deepEqual(await stored(), before);
+      await page.getByRole("button", { name: "Plans", exact: true }).click();
+      await page
+        .getByRole("button", { name: "Import plan…", exact: true })
+        .click();
+      await page.locator("#plan-file").setInputFiles({
+        name: "workout.json",
+        mimeType: "application/json",
+        buffer: bytes,
+      });
+      await page
+        .getByRole("dialog")
+        .getByText(/Source workout: 11.11.2026/)
+        .waitFor();
+      assert.equal(
+        await page
+          .getByRole("dialog")
+          .getByText("· Skipped in source workout", { exact: true })
+          .count(),
+        2,
+      );
+      await page
+        .getByRole("dialog")
+        .getByText("12,75 kg × 8", { exact: true })
+        .waitFor();
+      assert(
+        await page
+          .getByRole("dialog")
+          .evaluate((el) => el.scrollWidth <= el.clientWidth),
+      );
+      await page
+        .getByRole("button", { name: "Add imported plan", exact: true })
+        .click();
+      const after = await stored();
+      assert.deepEqual(after.sessions, before.sessions);
+      assert.deepEqual(after.active, before.active);
+      assert.deepEqual(after.rotation, before.rotation);
+      assert.equal(after.plans.length, before.plans.length + 1);
+      assert(after.plans.at(-1).items.every((i) => !("skipped" in i)));
+      assert.deepEqual(
+        after.plans.at(-1).items.map((i) => i.sets.length),
+        [3, 3, 1],
+      );
+    } finally {
+      await browser.close();
+    }
+  });
+}

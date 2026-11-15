@@ -1,5 +1,9 @@
 import { clone, invariant } from "../domain/model.js";
-import { portablePlan, planImportPreview } from "../domain/plan-transfer.js";
+import {
+  portablePlan,
+  portableWorkout,
+  planImportPreview,
+} from "../domain/plan-transfer.js";
 export class PlanTransfer {
   /** @param {import('./training.js').Training} training */
   constructor(training) {
@@ -7,6 +11,9 @@ export class PlanTransfer {
   }
   export(id) {
     return portablePlan(this.training.data, id, this.training.clock.iso());
+  }
+  exportWorkout(id) {
+    return portableWorkout(this.training.data, id, this.training.clock.iso());
   }
   preview(file, targetId = null, mappings = {}) {
     return planImportPreview(this.training.data, file, targetId, mappings);
@@ -39,8 +46,10 @@ export class PlanTransfer {
         const old = target?.items.find(
           (i) => i.id === item.id && i.exerciseId === exercise.id,
         );
+        const prescription = clone(item);
+        delete prescription.skipped;
         return {
-          ...clone(item),
+          ...prescription,
           id: old?.id || app.ids(),
           exerciseId: exercise.id,
           name: exercise.name,
