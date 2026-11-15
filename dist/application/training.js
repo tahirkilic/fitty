@@ -5,6 +5,7 @@ import {
   sessionItem,
   plannedItem,
   planChanges,
+  planDeletionReason,
 } from "../domain/model.js";
 export class Training {
   /** @param {import('../types.js').Repository} repository @param {import('../types.js').Clock} clock @param {()=>string} ids */
@@ -58,6 +59,22 @@ export class Training {
       d.plans.find((p) => p.id === id).archived = true;
       const next = d.rotation[d.next];
       d.rotation = d.rotation.filter((x) => x !== id);
+      d.next = Math.max(0, d.rotation.indexOf(next));
+    });
+  }
+  planDeletionReason(id) {
+    return planDeletionReason(this.data, id);
+  }
+  deletePlan(id) {
+    this.transact((d) => {
+      const reason = planDeletionReason(d, id);
+      invariant(!reason, reason);
+      const next = [
+        ...d.rotation.slice(d.next),
+        ...d.rotation.slice(0, d.next),
+      ].find((planId) => planId !== id);
+      d.plans = d.plans.filter((plan) => plan.id !== id);
+      d.rotation = d.rotation.filter((planId) => planId !== id);
       d.next = Math.max(0, d.rotation.indexOf(next));
     });
   }

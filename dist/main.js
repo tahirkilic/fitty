@@ -132,10 +132,10 @@ function plans() {
     ) +
     d.plans
       .filter((p) => !p.archived)
-      .map(
-        (p) =>
-          `<section class="card"><div class="row between"><div><span class="eyebrow muted">${p.rest}s REST · VERSION ${p.version}</span><h2 style="margin-top:8px">${escape(p.name)}</h2></div>${button("Start ↗", "start", p.id, "primary")}</div><p class="muted" style="margin:14px 0">${p.items.map((i) => escape(i.name)).join(" · ") || "No exercises yet"}</p><div class="row wrap">${button("Edit plan", "edit-plan", p.id, "ghost")}${button("Duplicate", "duplicate", p.id, "ghost")}${button("Archive", "archive-plan", p.id, "ghost")}</div></section>`,
-      )
+      .map((p) => {
+        const reason = vm.planDeletionReason(p.id);
+        return `<section class="card"><div class="row between"><div><span class="eyebrow muted">${p.rest}s REST · VERSION ${p.version}</span><h2 style="margin-top:8px">${escape(p.name)}</h2></div>${button("Start ↗", "start", p.id, "primary")}</div><p class="muted" style="margin:14px 0">${p.items.map((i) => escape(i.name)).join(" · ") || "No exercises yet"}</p><div class="row wrap">${button("Edit plan", "edit-plan", p.id, "ghost")}${button("Duplicate", "duplicate", p.id, "ghost")}${button("Archive", "archive-plan", p.id, "ghost")}<button class="danger" data-action="delete-plan" data-arg="${escape(p.id)}" ${reason ? `disabled aria-describedby="delete-plan-${escape(p.id)}"` : ""}>Delete plan</button></div>${reason ? `<p class="muted" id="delete-plan-${escape(p.id)}" style="margin-top:12px">${escape(reason)}</p>` : ""}</section>`;
+      })
       .join("") +
     `<section class="card"><h3>Rotation order</h3><p class="muted" style="margin:8px 0">Completed visits advance the rotation. Discarded visits do not.</p>${d.rotation.map((id) => `<div class="list-row"><div class="grow">${escape(d.plans.find((p) => p.id === id).name)}</div>${button("↑", "rotation-up", id, "small ghost")}${button("Remove", "rotation-remove", id, "small ghost")}</div>`).join("")}<label for="rotation-add">Add a plan to the rotation</label><select id="rotation-add" data-action="rotation-add"><option value="">Choose a plan…</option>${d.plans
       .filter((p) => !p.archived && !d.rotation.includes(p.id))
@@ -417,6 +417,17 @@ const actions = {
   },
   duplicate: (id) => app.duplicate(id),
   "archive-plan": (id) => app.archivePlan(id),
+  "delete-plan": (id) => {
+    const reason = vm.planDeletionReason(id);
+    if (reason) throw new Error(reason);
+    const plan = vm.data.plans.find((p) => p.id === id);
+    if (
+      confirm(
+        `Delete “${plan.name}”? This removes the plan from your rotation. Exercises and workouts will be kept.`,
+      )
+    )
+      app.deletePlan(id);
+  },
   "rotation-up": (id) => {
     const ids = [...vm.data.rotation],
       i = ids.indexOf(id);

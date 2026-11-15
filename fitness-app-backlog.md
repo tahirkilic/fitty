@@ -78,6 +78,7 @@ Dependencies: F01.
 Acceptance criteria:
 
 - Create, rename, duplicate, and archive plans.
+- Delete a plan only when no active or completed workout references its ID. Require confirmation, explain blocked deletion, and preserve exercises, workouts and the next surviving plan in rotation.
 - Add any number of exercises, reorder them, and configure any positive number of sets.
 - Each set has independent initial weight and repetition values.
 - Set a rest duration per plan; zero disables automatic countdown.
@@ -312,3 +313,9 @@ Status: first functional preview implemented; release verification remains open.
 - F03/F05/F08/F09/F10: plan and workout measurements (including previous-session prefilling), target text, history weights and plan-change comparisons use decimal commas regardless of browser locale. Comma entry and single-dot paste/keyboard entry normalize to commas. No thousands separators in measurement fields; mixed/grouped input is rejected. Repetitions and rest seconds remain integers. Decimal seconds from existing/imported timed exercises remain editable. JSON storage/export/import stays numeric with the existing schema and storage key.
 - Architecture: formatting/parsing belongs to presentation; domain plan-change comparisons expose structured prescriptions rather than formatted text. Review lists separate sets with semicolons to distinguish them from decimal commas.
 - Coverage: number-format/parser units cover precision, null/zero, comma/dot normalization, malformed input and integer constraints; integration covers numeric persistence, plan review, previous-session prefilling and backup round trips. Chromium/WebKit workflows test German and English browser locales, editing, invalid-input preservation, history, review, reload, backup and existing offline paths.
+
+## Protected plan deletion · 15 November 2026
+
+- F03/F04/F09/F10: Delete plan requires confirmation and is disabled with a visible reason for plans referenced by an active or historical workout, including partial/imported workouts. Archive remains available. Application transactions recheck stable-ID references before deleting, reject missing plans, and preserve all other data on blocked/failed saves.
+- Unused plans are removed from plans and rotation. The next surviving plan is preserved; deleting the next plan selects its following surviving neighbor, wrapping when needed. Empty rotations reset their position to zero. Discarding an active workout or explicitly deleting all related history can make a plan eligible again. Duplicates have their own eligibility.
+- Coverage: `tests/plan-deletion.test.js` maps domain/view-model eligibility, direct application protection, renamed/duplicated plans, partial/imported history, save failures, rotation boundaries, persistence and backup round trips. `tests/browser.system.mjs` covers disabled reasons, Archive availability, confirmation/cancellation, workout preservation, reload and actual file export/restore in Chromium/WebKit.

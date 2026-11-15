@@ -14,7 +14,7 @@ Fitty is a functional preview. The running app version is shown on the Home tab.
 
 - Four bottom tabs: Home, Plans, Workout and History. The top-right **More** menu opens **Exercises** and **Backup & restore**; tap outside or press Escape to close it.
 - Exercise/machine management with separate identities, machine numbers and archiving.
-- Plan creation, editing, duplication, archiving, per-set targets, and visit-based rotation.
+- Plan creation, editing, duplication, archiving, per-set targets, and visit-based rotation. **Delete plan** removes an unused plan after confirmation. Plans with active or historical workouts cannot be deleted; a visible reason explains the restriction. Archive used plans instead. Deletion preserves exercises and workouts, and keeps the next surviving plan in rotation.
 - Workout logging with automatic local saves, reload recovery, and previous completed values across plans. Tap an exercise header to collapse or expand its card; machine number, skip status and set progress remain visible. All cards start collapsed, keep their state during navigation and session edits, and reset to collapsed after reloading or starting another workout.
 - Rest timers and session-only reordering, skipping, adding or removing exercises. Hold a workout card briefly, then drag it up or down to reorder; a normal swipe scrolls. Keyboard users can focus its header and press Alt + Up/Down.
 - New workouts use the current exercise catalog machine numbers. Active and completed workouts retain their starting numbers.

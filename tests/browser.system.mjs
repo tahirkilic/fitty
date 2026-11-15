@@ -1569,3 +1569,102 @@ for (const [engine, type] of [
         await browser.close();
       }
     });
+
+for (const [engine, type] of [
+  ["chromium", chromium],
+  ["webkit", webkit],
+])
+  test(`${engine}: unused plan deletion requires confirmation and protects workout links`, async () => {
+    const browser = await type.launch();
+    try {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        isMobile: true,
+        hasTouch: true,
+      });
+      const page = await context.newPage();
+      const { setup, seed } = await import("./fixtures.js");
+      const { app } = setup();
+      const { a, b } = seed(app);
+      app.start(a);
+      app.complete(app.data.active.items[0].id, 0);
+      app.finish([]);
+      app.start(b);
+      app.duplicate(a);
+      const unused = app.data.plans.at(-1).id;
+      const before = structuredClone(app.data);
+      await page.goto(url);
+      await page.evaluate(
+        (data) =>
+          localStorage.setItem(
+            "fitty.fitness.v1",
+            JSON.stringify({ schemaVersion: 1, data }),
+          ),
+        before,
+      );
+      await page.reload();
+      await page.getByRole("button", { name: "Plans", exact: true }).click();
+      const deletion = (id) =>
+        page.locator(`[data-action="delete-plan"][data-arg="${id}"]`);
+      assert(await deletion(a).isDisabled());
+      assert(await deletion(b).isDisabled());
+      await page
+        .getByText(
+          "This plan has workout history. Archive it to keep its workouts.",
+          { exact: true },
+        )
+        .waitFor();
+      await page
+        .getByText(
+          "This plan has an active workout. Finish or discard it first.",
+          { exact: true },
+        )
+        .waitFor();
+      assert(
+        await page
+          .locator(`[data-action="archive-plan"][data-arg="${a}"]`)
+          .isEnabled(),
+      );
+      const stored = () =>
+        page.evaluate(
+          () => JSON.parse(localStorage.getItem("fitty.fitness.v1")).data,
+        );
+      const message =
+        "Delete “A copy”? This removes the plan from your rotation. Exercises and workouts will be kept.";
+      await answerConfirmation(page, deletion(unused), message, false);
+      assert.deepEqual(await stored(), before);
+      await answerConfirmation(page, deletion(unused), message, true);
+      await deletion(unused).waitFor({ state: "detached" });
+      const after = await stored();
+      assert.deepEqual(after.sessions, before.sessions);
+      assert.deepEqual(after.active, before.active);
+      assert.deepEqual(after.exercises, before.exercises);
+      assert.equal(after.rotation[after.next], b);
+      assert(!after.plans.some((plan) => plan.id === unused));
+      await page.reload();
+      await page.getByRole("button", { name: "Plans", exact: true }).click();
+      assert.equal(await deletion(unused).count(), 0);
+      assert(await deletion(a).isDisabled());
+      assert(await deletion(b).isDisabled());
+      await openMoreDestination(page, "Backup & restore");
+      const pending = page.waitForEvent("download");
+      await page
+        .getByRole("button", { name: "Download JSON backup ↗" })
+        .click();
+      const download = await pending;
+      const { readFile } = await import("node:fs/promises");
+      const backup = await readFile(await download.path());
+      assert.deepEqual(JSON.parse(backup).data, after);
+      await page.locator("#import-file").setInputFiles({
+        name: "backup.json",
+        mimeType: "application/json",
+        buffer: backup,
+      });
+      await page
+        .getByRole("button", { name: "Replace all data", exact: true })
+        .click();
+      assert.deepEqual(await stored(), after);
+    } finally {
+      await browser.close();
+    }
+  });

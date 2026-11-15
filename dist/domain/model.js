@@ -12,6 +12,15 @@ export const emptyData = () => ({
 export function invariant(condition, message) {
   if (!condition) throw new Error(message);
 }
+/** @param {import('../types.js').Data} data @param {string} id */
+export function planDeletionReason(data, id) {
+  if (!data.plans.some((plan) => plan.id === id)) return "Plan not found.";
+  if (data.active?.planId === id)
+    return "This plan has an active workout. Finish or discard it first.";
+  if (data.sessions.some((session) => session.planId === id))
+    return "This plan has workout history. Archive it to keep its workouts.";
+  return "";
+}
 export function prescription(weight = 0, reps = 10) {
   return { weight, reps };
 }

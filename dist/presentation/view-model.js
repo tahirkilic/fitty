@@ -23,6 +23,9 @@ export class ViewModel {
       (p) => p.id === this.data.rotation[this.data.next] && !p.archived,
     );
   }
+  planDeletionReason(id) {
+    return this.training.planDeletionReason(id);
+  }
   get rest() {
     return remainingSeconds(this.data.active?.restUntil, this.clock.now());
   }
